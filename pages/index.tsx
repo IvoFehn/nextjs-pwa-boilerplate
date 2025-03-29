@@ -1,5 +1,16 @@
-import React, { useState, useEffect, FC, ChangeEvent, MouseEvent } from "react";
-import { Lock, Unlock, Settings } from "lucide-react";
+import React, { useState, useEffect, FC, ChangeEvent } from "react";
+import {
+  Lock,
+  Unlock,
+  Settings,
+  Check,
+  Plus,
+  AlertTriangle,
+  Clock,
+  Calendar,
+  User,
+  Droplet,
+} from "lucide-react";
 
 // Interfaces
 interface User {
@@ -27,63 +38,98 @@ interface SettingsData {
   scheduledTimes: string[];
 }
 
-// Styles Interface
-interface StylesObject {
-  [key: string]: React.CSSProperties;
-}
-
-// Eigenes CSS als JavaScript-Objekt
-const styles: StylesObject = {
+// Modernes Design mit CSS-in-JS
+const styles = {
+  // Core
   container: {
-    maxWidth: "500px",
+    maxWidth: "800px",
+    width: "100%",
     margin: "0 auto",
-    padding: "20px",
-    fontFamily: "Arial, sans-serif",
+    padding: "16px",
+    fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+    color: "#1f2937",
+    backgroundColor: "#f9fafb",
+    minHeight: "100vh",
+    boxSizing: "border-box" as const,
   },
-  navigation: {
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+    gap: "16px",
+    width: "100%",
+  },
+  // Header
+  header: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "20px",
-    padding: "10px",
-    backgroundColor: "#f8f9fa",
-    borderRadius: "8px",
-    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+    marginBottom: "24px",
+    padding: "16px 20px",
+    backgroundColor: "white",
+    borderRadius: "12px",
+    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1)",
   },
-  navTitle: {
+  logo: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+  },
+  logoIcon: {
+    color: "#6366f1",
+  },
+  title: {
+    fontSize: "20px",
+    fontWeight: "700",
     margin: "0",
-    fontSize: "18px",
-    fontWeight: "bold",
+    color: "#111827",
   },
-  navLink: {
-    padding: "8px 12px",
-    backgroundColor: "#4f46e5",
+  navButton: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    padding: "8px 16px",
+    backgroundColor: "#6366f1",
     color: "white",
-    textDecoration: "none",
-    borderRadius: "4px",
-    fontSize: "14px",
-    cursor: "pointer",
-  },
-  card: {
-    backgroundColor: "#fff",
+    border: "none",
     borderRadius: "8px",
-    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
-    marginBottom: "20px",
+    fontSize: "14px",
+    fontWeight: "500",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+    textDecoration: "none",
+  },
+  // Cards
+  card: {
+    backgroundColor: "white",
+    borderRadius: "12px",
+    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1)",
+    overflow: "hidden",
+    transition: "transform 0.2s ease, box-shadow 0.2s ease",
+    height: "100%",
   },
   cardHeader: {
     padding: "16px 20px",
-    borderBottom: "1px solid #eee",
+    borderBottom: "1px solid #f3f4f6",
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  },
+  cardIcon: {
+    color: "#6366f1",
   },
   cardTitle: {
-    fontSize: "18px",
-    fontWeight: "bold",
+    fontSize: "16px",
+    fontWeight: "600",
     margin: "0",
+    color: "#111827",
   },
   cardContent: {
     padding: "20px",
   },
+  // Form elements
   formGroup: {
-    marginBottom: "16px",
+    marginBottom: "20px",
   },
   flexContainer: {
     display: "flex",
@@ -93,15 +139,18 @@ const styles: StylesObject = {
   userDisplay: {
     display: "flex",
     alignItems: "center",
-    gap: "10px",
-    padding: "10px",
-    backgroundColor: "#f0f4f8",
-    borderRadius: "4px",
+    justifyContent: "space-between",
+    padding: "12px 16px",
+    backgroundColor: "#f3f4f6",
+    borderRadius: "8px",
     marginBottom: "16px",
   },
   userName: {
-    fontWeight: "bold",
-    fontSize: "16px",
+    fontWeight: "600",
+    fontSize: "15px",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
   },
   iconButton: {
     background: "none",
@@ -109,114 +158,181 @@ const styles: StylesObject = {
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
-    padding: "6px",
-    borderRadius: "4px",
-    transition: "background-color 0.2s",
-  },
-  lockIcon: {
-    marginLeft: "8px",
-    cursor: "pointer",
+    justifyContent: "center",
+    padding: "8px",
+    borderRadius: "8px",
+    color: "#6b7280",
+    transition: "background-color 0.2s ease, color 0.2s ease",
   },
   label: {
     display: "block",
     marginBottom: "8px",
-    fontWeight: "bold",
+    fontWeight: "500",
     fontSize: "14px",
+    color: "#4b5563",
   },
   select: {
     width: "100%",
-    padding: "10px",
-    borderRadius: "4px",
-    border: "1px solid #ddd",
+    padding: "10px 14px",
+    borderRadius: "8px",
+    border: "1px solid #e5e7eb",
     fontSize: "14px",
     backgroundColor: "#fff",
+    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+    WebkitAppearance: "none" as const,
+    MozAppearance: "none" as const,
+    appearance: "none" as const,
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+    backgroundRepeat: "no-repeat",
+    backgroundPosition: "right 10px center",
+    backgroundSize: "16px 16px",
   },
   button: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "8px",
     width: "100%",
-    padding: "12px",
-    backgroundColor: "#4f46e5",
+    padding: "12px 20px",
+    backgroundColor: "#6366f1",
     color: "white",
     border: "none",
-    borderRadius: "4px",
+    borderRadius: "8px",
     fontSize: "14px",
-    fontWeight: "bold",
+    fontWeight: "500",
     cursor: "pointer",
+    transition: "background-color 0.2s ease",
+    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+  },
+  secondaryButton: {
+    backgroundColor: "#f3f4f6",
+    color: "#4b5563",
   },
   disabled: {
     opacity: "0.6",
     cursor: "not-allowed",
   },
-  infoText: {
+  // Text styles
+  text: {
     margin: "4px 0",
     fontSize: "14px",
+    color: "#4b5563",
   },
-  strongText: {
-    fontWeight: "bold",
+  strong: {
+    fontWeight: "600",
+    color: "#111827",
   },
   countDisplay: {
-    fontSize: "24px",
-    fontWeight: "bold",
-    textAlign: "center",
+    fontSize: "32px",
+    fontWeight: "700",
+    textAlign: "center" as const,
+    color: "#6366f1",
+    margin: "12px 0",
   },
+  todayDate: {
+    fontSize: "14px",
+    color: "#6b7280",
+    marginBottom: "16px",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  },
+  // Modal
   backdrop: {
-    position: "fixed",
+    position: "fixed" as const,
     top: "0",
     left: "0",
     width: "100%",
     height: "100%",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    backdropFilter: "blur(4px)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     zIndex: "1000",
+    padding: "16px",
+    boxSizing: "border-box" as const,
   },
   modal: {
     backgroundColor: "white",
-    borderRadius: "8px",
+    borderRadius: "12px",
     maxWidth: "400px",
-    width: "90%",
-    padding: "20px",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+    width: "100%",
+    overflow: "hidden",
+    boxShadow:
+      "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
   },
   modalHeader: {
-    marginBottom: "16px",
+    padding: "20px",
+    borderBottom: "1px solid #f3f4f6",
   },
   modalTitle: {
     fontSize: "18px",
-    fontWeight: "bold",
+    fontWeight: "600",
     margin: "0 0 8px 0",
+    color: "#111827",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
   },
   modalDescription: {
     fontSize: "14px",
-    color: "#666",
+    color: "#6b7280",
     margin: "0",
+    lineHeight: "1.5",
   },
   modalFooter: {
     display: "flex",
     justifyContent: "flex-end",
     gap: "12px",
-    marginTop: "24px",
+    padding: "16px 20px",
+    backgroundColor: "#f9fafb",
   },
   modalButton: {
     padding: "8px 16px",
-    borderRadius: "4px",
+    borderRadius: "8px",
     fontSize: "14px",
-    fontWeight: "bold",
+    fontWeight: "500",
     cursor: "pointer",
+    border: "none",
+    transition: "background-color 0.2s ease",
+  },
+  modalCancel: {
+    backgroundColor: "#f3f4f6",
+    color: "#4b5563",
+  },
+  modalConfirm: {
+    backgroundColor: "#6366f1",
+    color: "white",
+  },
+  // Appointments
+  appointmentList: {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "10px",
   },
   appointmentCard: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: "12px 16px",
-    marginBottom: "8px",
-    backgroundColor: "#f8f9fa",
-    borderRadius: "4px",
-    border: "1px solid #eee",
+    padding: "14px 16px",
+    backgroundColor: "#f9fafb",
+    borderRadius: "8px",
+    border: "1px solid #f3f4f6",
+    transition: "transform 0.2s ease, box-shadow 0.2s ease",
+  },
+  appointmentCardHover: {
+    boxShadow:
+      "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+    transform: "translateY(-2px)",
   },
   appointmentTime: {
-    fontWeight: "bold",
-    fontSize: "16px",
+    fontWeight: "600",
+    fontSize: "15px",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    color: "#111827",
   },
   appointmentStatus: {
     display: "flex",
@@ -224,36 +340,128 @@ const styles: StylesObject = {
     gap: "8px",
   },
   appointmentButton: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
     padding: "6px 12px",
-    borderRadius: "4px",
-    fontSize: "14px",
+    borderRadius: "6px",
+    fontSize: "13px",
     border: "none",
-    backgroundColor: "#4f46e5",
+    backgroundColor: "#6366f1",
     color: "white",
+    fontWeight: "500",
     cursor: "pointer",
+    transition: "background-color 0.2s ease",
   },
   completedBadge: {
-    padding: "4px 8px",
-    borderRadius: "4px",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    padding: "4px 8px 4px 6px",
+    borderRadius: "6px",
     fontSize: "12px",
     backgroundColor: "#10b981",
     color: "white",
+    fontWeight: "500",
   },
   pendingBadge: {
-    padding: "4px 8px",
-    borderRadius: "4px",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    padding: "4px 8px 4px 6px",
+    borderRadius: "6px",
     fontSize: "12px",
     backgroundColor: "#f59e0b",
     color: "white",
+    fontWeight: "500",
   },
-  todayDate: {
+  // Loading state
+  loadingContainer: {
+    display: "flex",
+    flexDirection: "column" as const,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "20px",
+    gap: "12px",
+  },
+  loadingSpinner: {
+    width: "24px",
+    height: "24px",
+    border: "3px solid #f3f4f6",
+    borderTop: "3px solid #6366f1",
+    borderRadius: "50%",
+    animation: "spin 1s linear infinite",
+  },
+  loadingText: {
     fontSize: "14px",
-    color: "#666",
-    marginBottom: "12px",
+    color: "#6b7280",
+  },
+  // Responsive adjustments
+  "@media (max-width: 640px)": {
+    grid: {
+      gridTemplateColumns: "1fr",
+    },
+    modal: {
+      width: "calc(100% - 32px)",
+    },
   },
 };
 
+// Definiere die animierten Styles als CSS-Klassen
+const createStyleSheet = () => {
+  const styleEl = document.createElement("style");
+  styleEl.textContent = `
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .hover-card:hover {
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      transform: translateY(-2px);
+    }
+    
+    .icon-button:hover {
+      background-color: #f3f4f6;
+      color: #4b5563;
+    }
+    
+    .primary-button:hover {
+      background-color: #4f46e5;
+    }
+    
+    .secondary-button:hover {
+      background-color: #e5e7eb;
+    }
+    
+    .appointment-card:hover {
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      transform: translateY(-2px);
+    }
+    
+    .appointment-button:hover {
+      background-color: #4f46e5;
+    }
+    
+    @media (max-width: 640px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .modal {
+        width: calc(100% - 32px);
+      }
+    }
+  `;
+  document.head.appendChild(styleEl);
+};
+
 const CatSprayTracker: FC = () => {
+  // Füge die Styles zum Dokument hinzu
+  useEffect(() => {
+    createStyleSheet();
+  }, []);
+
   const [selectedUser, setSelectedUser] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
   const [lastSprayData, setLastSprayData] = useState<SprayLogData | null>(null);
@@ -267,11 +475,14 @@ const CatSprayTracker: FC = () => {
     null
   );
   const [userLocked, setUserLocked] = useState<boolean>(false);
+  const [hoveredAppointment, setHoveredAppointment] = useState<string | null>(
+    null
+  );
 
   // Benutzer
   const users: User[] = [
-    { id: "user1", name: "Ich" },
-    { id: "user2", name: "Meine Freundin" },
+    { id: "user1", name: "Ivo" },
+    { id: "user2", name: "Michelle" },
   ];
 
   // Ausgewählten Benutzer und Lock-Status aus localStorage laden und Daten abrufen
@@ -498,169 +709,248 @@ const CatSprayTracker: FC = () => {
     return a.localeCompare(b);
   });
 
+  // Rendering des Loading-Zustands
+  const renderLoading = () => (
+    <div style={styles.loadingContainer}>
+      <div style={styles.loadingSpinner}></div>
+      <p style={styles.loadingText}>Lädt...</p>
+    </div>
+  );
+
   return (
     <div style={styles.container}>
-      {/* Navigation */}
-      <div style={styles.navigation}>
-        <h1 style={styles.navTitle}>Katzen-Spray Tracker</h1>
-        <button style={styles.navLink} onClick={goToAdminPanel}>
+      {/* Header mit Logo */}
+      <div style={styles.header}>
+        <div style={styles.logo}>
+          <Droplet size={24} style={styles.logoIcon} />
+          <h1 style={styles.title}>Katzen-Spray Tracker</h1>
+        </div>
+        <button
+          style={styles.navButton}
+          className="primary-button"
+          onClick={goToAdminPanel}
+        >
+          <Settings size={16} />
           Admin-Panel
         </button>
       </div>
 
-      {/* Benutzerauswahl Card */}
-      <div style={styles.card}>
-        <div style={styles.cardHeader}>
-          <h2 style={styles.cardTitle}>Benutzerprofil</h2>
-        </div>
-        <div style={styles.cardContent}>
-          {userLocked && selectedUser ? (
-            // Anzeige wenn Benutzer eingelockt ist
-            <div style={styles.userDisplay}>
-              <span style={styles.userName}>
-                {users.find((user) => user.id === selectedUser)?.name}
-              </span>
-              <button
-                style={styles.iconButton}
-                onClick={unlockUser}
-                title="Benutzer entsperren"
-              >
-                <Unlock size={20} color="#666" />
-              </button>
-            </div>
-          ) : (
-            // Auswahlfeld wenn Benutzer nicht eingelockt ist
-            <div style={styles.formGroup}>
-              <div style={styles.flexContainer}>
-                <label style={styles.label} htmlFor="userSelect">
-                  Benutzer auswählen:
-                </label>
-                {selectedUser && (
-                  <button
-                    style={styles.iconButton}
-                    onClick={toggleUserLock}
-                    title="Benutzer einlocken"
-                  >
-                    <Lock size={20} color={userLocked ? "#4f46e5" : "#666"} />
-                  </button>
-                )}
+      {/* Responsives Grid für Karten */}
+      <div style={styles.grid}>
+        {/* Benutzerauswahl Card */}
+        <div style={styles.card} className="hover-card">
+          <div style={styles.cardHeader}>
+            <User size={18} style={styles.cardIcon} />
+            <h2 style={styles.cardTitle}>Benutzerprofil</h2>
+          </div>
+          <div style={styles.cardContent}>
+            {userLocked && selectedUser ? (
+              // Anzeige wenn Benutzer eingelockt ist
+              <div style={styles.userDisplay}>
+                <span style={styles.userName}>
+                  <User size={16} color="#6366f1" />
+                  {users.find((user) => user.id === selectedUser)?.name}
+                </span>
+                <button
+                  style={styles.iconButton}
+                  className="icon-button"
+                  onClick={unlockUser}
+                  title="Benutzer entsperren"
+                >
+                  <Unlock size={18} />
+                </button>
               </div>
-              <select
-                id="userSelect"
-                style={styles.select}
-                value={selectedUser}
-                onChange={handleUserChange}
+            ) : (
+              // Auswahlfeld wenn Benutzer nicht eingelockt ist
+              <div style={styles.formGroup}>
+                <div style={styles.flexContainer}>
+                  <label style={styles.label} htmlFor="userSelect">
+                    Benutzer auswählen:
+                  </label>
+                  {selectedUser && (
+                    <button
+                      style={styles.iconButton}
+                      className="icon-button"
+                      onClick={toggleUserLock}
+                      title="Benutzer einlocken"
+                    >
+                      <Lock
+                        size={18}
+                        color={userLocked ? "#6366f1" : undefined}
+                      />
+                    </button>
+                  )}
+                </div>
+                <select
+                  id="userSelect"
+                  style={styles.select}
+                  value={selectedUser}
+                  onChange={handleUserChange}
+                >
+                  <option value="">Benutzer auswählen</option>
+                  {users.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Zähler Card */}
+        <div style={styles.card} className="hover-card">
+          <div style={styles.cardHeader}>
+            <Droplet size={18} style={styles.cardIcon} />
+            <h2 style={styles.cardTitle}>Ampullen-Zähler</h2>
+          </div>
+          <div style={styles.cardContent}>
+            <p style={styles.countDisplay}>{sprayCount}</p>
+            <p style={styles.text}>
+              Verwendete Sprühstöße bei der aktuellen Ampulle
+            </p>
+          </div>
+        </div>
+
+        {/* Letzte Anwendung Card */}
+        <div style={styles.card} className="hover-card">
+          <div style={styles.cardHeader}>
+            <Clock size={18} style={styles.cardIcon} />
+            <h2 style={styles.cardTitle}>Letzte Anwendung</h2>
+          </div>
+          <div style={styles.cardContent}>
+            {isLoading ? (
+              renderLoading()
+            ) : lastSprayData ? (
+              <div>
+                <p style={styles.text}>
+                  <span style={styles.strong}>Benutzer:</span>{" "}
+                  {lastSprayData.userName}
+                </p>
+                <p style={styles.text}>
+                  <span style={styles.strong}>Zeitpunkt:</span>{" "}
+                  {formatDateTime(lastSprayData.timestamp)}
+                </p>
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  color: "#6b7280",
+                }}
               >
-                <option value="">Benutzer auswählen</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+                <AlertTriangle size={16} />
+                <p style={styles.text}>Keine Einträge vorhanden.</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Heutige Termine Card */}
-      <div style={styles.card}>
+      {/* Heutige Termine Card (volle Breite) */}
+      <div style={{ ...styles.card, marginTop: "16px" }} className="hover-card">
         <div style={styles.cardHeader}>
+          <Calendar size={18} style={styles.cardIcon} />
           <h2 style={styles.cardTitle}>Heutige Termine</h2>
         </div>
         <div style={styles.cardContent}>
-          <p style={styles.todayDate}>{formatDate(new Date())}</p>
+          <p style={styles.todayDate}>
+            <Calendar size={16} />
+            {formatDate(new Date())}
+          </p>
 
-          {sortedTimes.length > 0 ? (
-            sortedTimes.map((time, index) => {
-              const completed = isAppointmentCompleted(time);
-              const completedBy = completed
-                ? completedAppointments.find((app) => app.time === time)
-                    ?.userName
-                : null;
+          <div style={styles.appointmentList}>
+            {sortedTimes.length > 0 ? (
+              sortedTimes.map((time, index) => {
+                const completed = isAppointmentCompleted(time);
+                const completedBy = completed
+                  ? completedAppointments.find((app) => app.time === time)
+                      ?.userName
+                  : null;
 
-              return (
-                <div key={index} style={styles.appointmentCard}>
-                  <div style={styles.appointmentTime}>{time} Uhr</div>
-                  <div style={styles.appointmentStatus}>
-                    {completed ? (
-                      <div style={styles.completedBadge}>
-                        Erledigt von {completedBy}
-                      </div>
-                    ) : (
-                      <button
-                        style={{
-                          ...styles.appointmentButton,
-                          ...(isLoading || !selectedUser
-                            ? styles.disabled
-                            : {}),
-                        }}
-                        onClick={() => openAppointmentDialog(time)}
-                        disabled={isLoading || !selectedUser}
-                      >
-                        Jetzt erledigen
-                      </button>
-                    )}
+                const isHovered = hoveredAppointment === time;
+
+                return (
+                  <div
+                    key={index}
+                    style={{
+                      ...styles.appointmentCard,
+                      ...(isHovered && !completed
+                        ? styles.appointmentCardHover
+                        : {}),
+                    }}
+                    className={!completed ? "appointment-card" : ""}
+                    onMouseEnter={() => setHoveredAppointment(time)}
+                    onMouseLeave={() => setHoveredAppointment(null)}
+                  >
+                    <div style={styles.appointmentTime}>
+                      <Clock size={16} color="#6366f1" />
+                      {time} Uhr
+                    </div>
+                    <div style={styles.appointmentStatus}>
+                      {completed ? (
+                        <div style={styles.completedBadge}>
+                          <Check size={14} />
+                          Erledigt von {completedBy}
+                        </div>
+                      ) : (
+                        <button
+                          style={{
+                            ...styles.appointmentButton,
+                            ...(isLoading || !selectedUser
+                              ? styles.disabled
+                              : {}),
+                          }}
+                          className="appointment-button"
+                          onClick={() => openAppointmentDialog(time)}
+                          disabled={isLoading || !selectedUser}
+                        >
+                          <Check size={14} />
+                          Jetzt erledigen
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })
-          ) : (
-            <p style={styles.infoText}>
-              Keine Termine gefunden. Bitte im Admin-Panel konfigurieren.
-            </p>
-          )}
+                );
+              })
+            ) : (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  color: "#6b7280",
+                  padding: "16px 0",
+                }}
+              >
+                <AlertTriangle size={16} />
+                <p style={styles.text}>
+                  Keine Termine gefunden. Bitte im Admin-Panel konfigurieren.
+                </p>
+              </div>
+            )}
+          </div>
 
           {/* Manueller Eintrag Button */}
           <button
             style={{
               ...styles.button,
-              marginTop: "16px",
+              marginTop: "20px",
               ...(isLoading || !selectedUser ? styles.disabled : {}),
             }}
+            className="primary-button"
             onClick={() => {
               setCurrentAppointment(null);
               setIsDialogOpen(true);
             }}
             disabled={isLoading || !selectedUser}
           >
+            <Plus size={16} />
             Zusätzliche Spray-Gabe eintragen
           </button>
-        </div>
-      </div>
-
-      {/* Letzte Anwendung Card */}
-      <div style={styles.card}>
-        <div style={styles.cardHeader}>
-          <h2 style={styles.cardTitle}>Letzte Anwendung</h2>
-        </div>
-        <div style={styles.cardContent}>
-          {isLoading ? (
-            <p style={styles.infoText}>Lädt...</p>
-          ) : lastSprayData ? (
-            <div>
-              <p style={styles.infoText}>
-                <span style={styles.strongText}>Benutzer:</span>{" "}
-                {lastSprayData.userName}
-              </p>
-              <p style={styles.infoText}>
-                <span style={styles.strongText}>Zeitpunkt:</span>{" "}
-                {formatDateTime(lastSprayData.timestamp)}
-              </p>
-            </div>
-          ) : (
-            <p style={styles.infoText}>Keine Einträge vorhanden.</p>
-          )}
-        </div>
-      </div>
-
-      {/* Zähler Card */}
-      <div style={styles.card}>
-        <div style={styles.cardHeader}>
-          <h2 style={styles.cardTitle}>Zähler aktuelle Ampulle</h2>
-        </div>
-        <div style={styles.cardContent}>
-          <p style={styles.countDisplay}>{sprayCount}</p>
         </div>
       </div>
 
@@ -669,24 +959,23 @@ const CatSprayTracker: FC = () => {
         <div style={styles.backdrop}>
           <div style={styles.modal}>
             <div style={styles.modalHeader}>
-              <h3 style={styles.modalTitle}>Bestätigung</h3>
+              <h3 style={styles.modalTitle}>
+                <Droplet size={18} color="#6366f1" />
+                Spray-Gabe bestätigen
+              </h3>
               <p style={styles.modalDescription}>
                 {currentAppointment
                   ? `Bestätige, dass ${
                       users.find((user) => user.id === selectedUser)?.name
-                    } gerade der Katze das Spray um ${currentAppointment} Uhr gegeben hat.`
+                    } der Katze das Spray um ${currentAppointment} Uhr gegeben hat.`
                   : `Bestätige, dass ${
                       users.find((user) => user.id === selectedUser)?.name
-                    } gerade der Katze das Spray gegeben hat.`}
+                    } der Katze das Spray gegeben hat.`}
               </p>
             </div>
             <div style={styles.modalFooter}>
               <button
-                style={{
-                  ...styles.modalButton,
-                  border: "1px solid #ddd",
-                  backgroundColor: "#f9fafb",
-                }}
+                style={{ ...styles.modalButton, ...styles.modalCancel }}
                 onClick={() => setIsDialogOpen(false)}
               >
                 Abbrechen
@@ -694,9 +983,7 @@ const CatSprayTracker: FC = () => {
               <button
                 style={{
                   ...styles.modalButton,
-                  backgroundColor: "#4f46e5",
-                  color: "white",
-                  border: "none",
+                  ...styles.modalConfirm,
                   ...(isLoading ? styles.disabled : {}),
                 }}
                 onClick={() =>
@@ -706,6 +993,7 @@ const CatSprayTracker: FC = () => {
                 }
                 disabled={isLoading}
               >
+                <Check size={16} />
                 Bestätigen
               </button>
             </div>
