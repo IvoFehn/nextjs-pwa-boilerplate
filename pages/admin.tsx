@@ -21,7 +21,11 @@ interface SettingsData {
 }
 
 interface StylesObject {
-  [key: string]: React.CSSProperties;
+  [key: string]:
+    | React.CSSProperties
+    | {
+        [key: string]: React.CSSProperties;
+      };
 }
 
 interface UserProfile {
