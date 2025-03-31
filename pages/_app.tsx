@@ -11,7 +11,7 @@ declare global {
 }
 
 // VAPID Public Key aus Umgebungsvariablen
-const PUBLIC_VAPID_KEY = process.env.NEXT_PUBLIC_VAPID_KEY || "";
+const PUBLIC_VAPID_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
 
 // Hilfsfunktion zur Konvertierung des VAPID-Schlüssels
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
