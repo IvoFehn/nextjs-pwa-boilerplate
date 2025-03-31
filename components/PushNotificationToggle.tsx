@@ -1,25 +1,40 @@
 // components/PushNotificationToggle.tsx
-import React from "react";
+import React, { useState } from "react";
 import { usePushNotifications } from "../hooks/usePushNotifications";
-import { Bell, BellOff, AlertTriangle, Check } from "lucide-react";
+import {
+  Bell,
+  BellOff,
+  AlertTriangle,
+  Check,
+  Info,
+  RefreshCw,
+} from "lucide-react";
 
 interface PushNotificationToggleProps {
   userId?: string;
   style?: React.CSSProperties;
+  messageText?: {
+    enabledMessage?: string;
+    disabledMessage?: string;
+  };
 }
 
 const PushNotificationToggle: React.FC<PushNotificationToggleProps> = ({
   userId,
   style,
+  messageText,
 }) => {
   const {
     isSupported,
     isSubscribed,
     permissionState,
     error,
+    platform,
     subscribe,
     unsubscribe,
   } = usePushNotifications();
+
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Stil für die Komponente (kann mit den übergebenen Stilen überschrieben werden)
   const defaultStyles = {
@@ -98,12 +113,40 @@ const PushNotificationToggle: React.FC<PushNotificationToggleProps> = ({
       fontSize: "14px",
       marginTop: "8px",
     },
+    info: {
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      padding: "12px",
+      borderRadius: "8px",
+      backgroundColor: "#e0f2fe",
+      color: "#0369a1",
+      fontSize: "14px",
+      marginTop: "8px",
+    },
     disabled: {
       opacity: 0.6,
       cursor: "not-allowed",
     },
+    loading: {
+      animation: "spin 1s linear infinite",
+    },
   };
 
+  // iOS-spezifische Inhalte
+  const isIOS = platform === "ios";
+  const isUnsupportedIOS = isIOS && !isSupported;
+
+  // Benutzerdefinierte Nachrichtentexte oder Standardtexte
+  const enabledMessage =
+    messageText?.enabledMessage ||
+    "Sie erhalten Benachrichtigungen, wenn es Zeit für Ihre Medikamente ist.";
+
+  const disabledMessage =
+    messageText?.disabledMessage ||
+    "Aktivieren Sie Push-Benachrichtigungen, um rechtzeitig an Ihre Medikamente erinnert zu werden.";
+
+  // Wenn der Browser keine Push-Benachrichtigungen unterstützt
   if (!isSupported) {
     return (
       <div style={defaultStyles.container}>
@@ -114,18 +157,30 @@ const PushNotificationToggle: React.FC<PushNotificationToggleProps> = ({
           </h3>
         </div>
         <p style={defaultStyles.description}>
-          Leider unterstützt Ihr Browser keine Push-Benachrichtigungen.
+          {isUnsupportedIOS
+            ? "Ihr iOS-Gerät unterstützt keine Push-Benachrichtigungen. iOS 16.4 oder höher wird benötigt."
+            : "Leider unterstützt Ihr Browser keine Push-Benachrichtigungen."}
         </p>
       </div>
     );
   }
 
   const handleSubscribe = async () => {
-    await subscribe();
+    setIsLoading(true);
+    try {
+      await subscribe(userId);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleUnsubscribe = async () => {
-    await unsubscribe();
+    setIsLoading(true);
+    try {
+      await unsubscribe();
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -141,10 +196,19 @@ const PushNotificationToggle: React.FC<PushNotificationToggleProps> = ({
             style={{
               ...defaultStyles.button,
               ...defaultStyles.unsubscribeButton,
+              ...(isLoading ? defaultStyles.disabled : {}),
             }}
             onClick={handleUnsubscribe}
+            disabled={isLoading}
           >
-            <BellOff size={16} />
+            {isLoading ? (
+              <RefreshCw
+                size={16}
+                style={{ animation: "spin 1s linear infinite" }}
+              />
+            ) : (
+              <BellOff size={16} />
+            )}
             Deaktivieren
           </button>
         ) : (
@@ -152,20 +216,28 @@ const PushNotificationToggle: React.FC<PushNotificationToggleProps> = ({
             style={{
               ...defaultStyles.button,
               ...defaultStyles.subscribeButton,
+              ...(permissionState === "denied" || isLoading
+                ? defaultStyles.disabled
+                : {}),
             }}
             onClick={handleSubscribe}
-            disabled={permissionState === "denied"}
+            disabled={permissionState === "denied" || isLoading}
           >
-            <Bell size={16} />
+            {isLoading ? (
+              <RefreshCw
+                size={16}
+                style={{ animation: "spin 1s linear infinite" }}
+              />
+            ) : (
+              <Bell size={16} />
+            )}
             Aktivieren
           </button>
         )}
       </div>
 
       <p style={defaultStyles.description}>
-        {isSubscribed
-          ? "Sie erhalten Benachrichtigungen, wenn es Zeit für das Katzen-Spray ist."
-          : "Aktivieren Sie Push-Benachrichtigungen, um rechtzeitig an die Spray-Termine erinnert zu werden."}
+        {isSubscribed ? enabledMessage : disabledMessage}
       </p>
 
       {error && (
@@ -192,6 +264,20 @@ const PushNotificationToggle: React.FC<PushNotificationToggleProps> = ({
           </span>
         </div>
       )}
+
+      {isIOS &&
+        isSupported &&
+        permissionState !== "denied" &&
+        !isSubscribed && (
+          <div style={defaultStyles.info}>
+            <Info size={16} />
+            <span>
+              Hinweis für iOS-Nutzer: Nach dem Aktivieren müssen Sie
+              möglicherweise die Einstellungen in Safari öffnen und die
+              Benachrichtigungen für diese Website ausdrücklich erlauben.
+            </span>
+          </div>
+        )}
     </div>
   );
 };

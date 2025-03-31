@@ -56,7 +56,7 @@ self.addEventListener("push", (event) => {
       body: payload.body,
       icon: payload.icon || "/android-chrome-192x192.png",
       badge: "/favicon-32x32.png",
-      data: payload.link || "/",
+      data: { url: payload.link || "/" }, // Geändert für einheitliches Format
     })
   );
 });
@@ -64,10 +64,12 @@ self.addEventListener("push", (event) => {
 // Notification-Click Handling
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+
+  // Verbesserte URL-Extraktion
+  const targetUrl = event.notification.data?.url || "/";
+
   event.waitUntil(
     clients.matchAll({ type: "window" }).then((clientList) => {
-      const targetUrl = event.notification.data || "/";
-
       // Versuchen, ein bereits offenes Fenster zu fokussieren
       for (const client of clientList) {
         if (client.url === targetUrl && "focus" in client) {

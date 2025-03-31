@@ -39,6 +39,15 @@ const SubscriptionSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    // Hinzufügen von Geräteinformationen für bessere Analysemöglichkeiten
+    userAgent: {
+      type: String,
+      default: null,
+    },
+    platform: {
+      type: String,
+      default: null,
+    },
   },
   { timestamps: true }
 );
@@ -52,6 +61,19 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  // CORS-Header hinzufügen (wichtig für iOS Safari)
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS"
+  );
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+  // OPTIONS-Anfragen für CORS-Preflight beantworten
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
   // Verbindung zur Datenbank herstellen
   await dbConnect();
 
@@ -62,6 +84,23 @@ export default async function handler(
 
       if (!subscription || !subscription.endpoint) {
         return res.status(400).json({ error: "Ungültiges Abonnement" });
+      }
+
+      // Extrahieren von User-Agent-Informationen (falls vorhanden)
+      const userAgent = req.headers["user-agent"] || null;
+
+      // Geräteplattform erkennen
+      let platform = "other";
+      if (userAgent) {
+        if (userAgent.includes("iPhone") || userAgent.includes("iPad")) {
+          platform = "ios";
+        } else if (userAgent.includes("Android")) {
+          platform = "android";
+        } else if (userAgent.includes("Windows")) {
+          platform = "windows";
+        } else if (userAgent.includes("Mac")) {
+          platform = "mac";
+        }
       }
 
       // Prüfen, ob das Abonnement bereits existiert
@@ -76,6 +115,8 @@ export default async function handler(
           {
             $set: {
               ...subscription,
+              userAgent,
+              platform,
               updatedAt: new Date(),
             },
           }
@@ -84,7 +125,9 @@ export default async function handler(
         // Neues Abonnement hinzufügen
         await Subscription.create({
           ...subscription,
-          userId: req.body.userId || null, // Optional: Benutzer-ID verknüpfen
+          userId: req.body.userId || null,
+          userAgent,
+          platform,
         });
       }
 

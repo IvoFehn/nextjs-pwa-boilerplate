@@ -17,6 +17,7 @@ interface NotificationState {
   subscription: PushSubscription | null;
   permissionState: NotificationPermission;
   error: string | null;
+  platform: string | null;
 }
 
 // VAPID Public Key von unserem Server
@@ -36,6 +37,42 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
+// Plattform erkennen
+function detectPlatform(): string {
+  const userAgent =
+    navigator.userAgent || navigator.vendor || (window as any).opera || "";
+
+  if (/iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream) {
+    return "ios";
+  }
+
+  if (/android/i.test(userAgent)) {
+    return "android";
+  }
+
+  if (/Windows/.test(userAgent)) {
+    return "windows";
+  }
+
+  if (/Mac/.test(userAgent)) {
+    return "mac";
+  }
+
+  return "other";
+}
+
+// iOS-Version erkennen
+function getIOSVersion(): number | null {
+  const userAgent = navigator.userAgent;
+  if (/iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream) {
+    const match = userAgent.match(/OS (\d+)_(\d+)_?(\d+)?/);
+    if (match) {
+      return parseInt(match[1], 10);
+    }
+  }
+  return null;
+}
+
 // Hook für Web Push Notifications
 export function usePushNotifications() {
   const [state, setState] = useState<NotificationState>({
@@ -44,19 +81,40 @@ export function usePushNotifications() {
     subscription: null,
     permissionState: "default",
     error: null,
+    platform: null,
   });
 
   // Prüfe bei Initialisierung, ob Push-Notifications unterstützt werden
   useEffect(() => {
     const checkSupport = async () => {
-      const isSupported =
+      // Plattform erkennen
+      const platform = detectPlatform();
+
+      // Prüfen ob Browser Push-Notifications unterstützt
+      const isPushSupported =
         "serviceWorker" in navigator && "PushManager" in window;
+
+      // Spezieller iOS-Check: Web Push ab iOS 16.4+ unterstützt
+      let isSupported = isPushSupported;
+
+      if (platform === "ios") {
+        const iosVersion = getIOSVersion();
+        // iOS unterstützt Web Push erst ab Version 16.4
+        if (iosVersion !== null && iosVersion < 16) {
+          isSupported = false;
+        }
+      }
 
       if (!isSupported) {
         setState((prevState) => ({
           ...prevState,
           isSupported,
-          error: "Dieser Browser unterstützt keine Push-Benachrichtigungen.",
+          platform,
+          error:
+            "Dieser Browser unterstützt keine Push-Benachrichtigungen." +
+            (platform === "ios"
+              ? " iOS benötigt Version 16.4 oder höher."
+              : ""),
         }));
         return;
       }
@@ -66,7 +124,16 @@ export function usePushNotifications() {
         const permissionState = window.Notification
           ?.permission as NotificationPermission;
 
-        // Prüfen, ob der Service Worker registriert ist
+        // Service Worker registrieren falls noch nicht geschehen
+        if (!navigator.serviceWorker.controller) {
+          try {
+            await navigator.serviceWorker.register("/sw.js");
+          } catch (err) {
+            console.error("Service Worker Registrierungsfehler:", err);
+          }
+        }
+
+        // Prüfen, ob der Service Worker bereit ist
         const registration = await navigator.serviceWorker.ready;
 
         // Prüfen, ob bereits ein Abonnement besteht
@@ -78,11 +145,13 @@ export function usePushNotifications() {
           subscription: subscription as unknown as PushSubscription,
           permissionState,
           error: null,
+          platform,
         });
       } catch (error) {
         setState((prevState) => ({
           ...prevState,
           isSupported,
+          platform,
           error:
             "Fehler beim Initialisieren der Push-Benachrichtigungen: " +
             (error as Error).message,
@@ -94,7 +163,7 @@ export function usePushNotifications() {
   }, []);
 
   // Funktion zum Abonnieren von Push-Benachrichtigungen
-  const subscribe = async () => {
+  const subscribe = async (userId?: string) => {
     try {
       if (!state.isSupported) {
         throw new Error("Push-Benachrichtigungen werden nicht unterstützt.");
@@ -108,14 +177,37 @@ export function usePushNotifications() {
         }
       }
 
+      // Service Worker registrieren falls noch nicht geschehen
+      if (!navigator.serviceWorker.controller) {
+        try {
+          await navigator.serviceWorker.register("/sw.js");
+        } catch (err) {
+          console.error("Service Worker Registrierungsfehler:", err);
+        }
+      }
+
       // Service Worker abrufen
       const registration = await navigator.serviceWorker.ready;
 
+      // Falls ein altes Abonnement existiert, dieses zuerst beenden
+      const existingSubscription =
+        await registration.pushManager.getSubscription();
+      if (existingSubscription) {
+        await existingSubscription.unsubscribe();
+      }
+
       // Neues Abonnement erstellen
       const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
+        userVisibleOnly: true, // Erforderlich für iOS
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
       });
+
+      // Abonnementdaten vorbereiten
+      const subscriptionData = {
+        ...subscription.toJSON(),
+        userId: userId || null,
+        platform: state.platform,
+      };
 
       // Abonnement an den Server senden
       const response = await fetch("/api/push-subscription", {
@@ -123,7 +215,7 @@ export function usePushNotifications() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(subscription),
+        body: JSON.stringify(subscriptionData),
       });
 
       if (!response.ok) {
