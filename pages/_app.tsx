@@ -5,8 +5,9 @@ import Head from "next/head";
 
 // TypeScript-Definition für die globale logToScreen-Funktion
 declare global {
+  var logToScreen: undefined | ((message: string) => void);
   interface Window {
-    logToScreen: (message: string) => void;
+    logToScreen?: (message: string) => void;
   }
 }
 
@@ -27,72 +28,205 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
+// TypeScript-Interface für Service Worker Registration
+interface ServiceWorkerRegistrationWithWaiting
+  extends ServiceWorkerRegistration {
+  waiting: ServiceWorker | null;
+  installing: ServiceWorker | null;
+}
+
 export default function App({ Component, pageProps }: AppProps) {
   useEffect(() => {
     // Service Worker und Push-Benachrichtigungen registrieren
     async function registerServiceWorkerAndPush() {
       if ("serviceWorker" in navigator) {
         try {
-          // Service Worker registrieren
-          const registration = await navigator.serviceWorker.register("/sw.js");
-          console.log(
-            "Service Worker registriert mit Scope:",
-            registration.scope
+          // Zuerst prüfen, ob bereits eine Registrierung existiert
+          const existingRegistration =
+            (await navigator.serviceWorker.getRegistration()) as ServiceWorkerRegistrationWithWaiting;
+          if (existingRegistration) {
+            window.logToScreen?.(
+              "Bestehender Service Worker gefunden. Status: " +
+                (existingRegistration.active ? "Aktiv" : "Inaktiv")
+            );
+
+            // Falls der Service Worker inaktiv ist
+            if (!existingRegistration.active && existingRegistration.waiting) {
+              window.logToScreen?.(
+                "Service Worker wartet auf Aktivierung. Sende SKIP_WAITING."
+              );
+              existingRegistration.waiting.postMessage({
+                type: "SKIP_WAITING",
+              });
+            }
+
+            // Aktualisieren und neu registrieren
+            window.logToScreen?.("Service Worker wird aktualisiert");
+            existingRegistration.update();
+          }
+
+          // Service Worker registrieren oder erneut registrieren
+          const registration = (await navigator.serviceWorker.register(
+            "/sw.js",
+            {
+              updateViaCache: "none", // Immer frischen SW vom Server holen
+            }
+          )) as ServiceWorkerRegistrationWithWaiting;
+
+          window.logToScreen?.(
+            "Service Worker registriert mit Scope: " + registration.scope
           );
+
+          // Auf "controlling" Event warten
+          navigator.serviceWorker.addEventListener("controllerchange", () => {
+            window.logToScreen?.("Service Worker hat die Kontrolle übernommen");
+          });
+
+          // Auf Status-Updates reagieren
+          const trackInstallation = (
+            reg: ServiceWorkerRegistrationWithWaiting
+          ) => {
+            if (reg.installing) {
+              const sw = reg.installing;
+              sw.addEventListener("statechange", () => {
+                window.logToScreen?.(
+                  "Service Worker Status geändert: " + sw.state
+                );
+              });
+            }
+          };
+
+          trackInstallation(registration);
+
+          // Force Activate, falls nötig
+          if (registration.waiting) {
+            window.logToScreen?.(
+              "Service Worker wartet auf Aktivierung. Sende SKIP_WAITING."
+            );
+            registration.waiting.postMessage({ type: "SKIP_WAITING" });
+          }
 
           // Benachrichtigungsberechtigung überprüfen
           if ("Notification" in window) {
             const permission = await Notification.requestPermission();
+            window.logToScreen?.("Notification Berechtigung: " + permission);
 
             if (permission === "granted") {
-              // Prüfen, ob bereits ein Push-Abonnement existiert
-              let subscription =
-                await registration.pushManager.getSubscription();
+              // Prüfen, ob der Service Worker bereit ist
+              if (!registration.active) {
+                window.logToScreen?.("Warte auf aktiven Service Worker...");
 
-              // Falls kein Abonnement besteht, eines erstellen
-              if (!subscription) {
-                subscription = await registration.pushManager.subscribe({
-                  userVisibleOnly: true, // Erforderlich für iOS
-                  applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY),
+                // Warten bis der Service Worker aktiviert ist
+                await new Promise<void>((resolve) => {
+                  const checkActive = () => {
+                    if (registration.active) {
+                      resolve();
+                    } else {
+                      setTimeout(checkActive, 100);
+                    }
+                  };
+                  checkActive();
                 });
 
-                // Abonnement an Server senden
-                await fetch("/api/push-subscribe", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify(subscription),
-                });
+                window.logToScreen?.("Service Worker ist jetzt aktiv");
               }
 
-              console.log("Push-Benachrichtigungen erfolgreich aktiviert");
+              try {
+                // Prüfen, ob bereits ein Push-Abonnement existiert
+                let subscription =
+                  await registration.pushManager.getSubscription();
 
-              // Debug-Log
-              if (window.logToScreen) {
-                window.logToScreen("Push-Benachrichtigungen aktiviert");
-                window.logToScreen(
-                  "Subscription: " +
-                    JSON.stringify(subscription).substring(0, 50) +
-                    "..."
+                window.logToScreen?.(
+                  "Bestehende Subscription: " + (subscription ? "Ja" : "Nein")
                 );
+
+                // Falls kein Abonnement besteht, eines erstellen
+                if (!subscription) {
+                  const vapidPublicKey =
+                    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
+
+                  if (!vapidPublicKey) {
+                    window.logToScreen?.(
+                      "FEHLER: VAPID Public Key fehlt in den Umgebungsvariablen"
+                    );
+                    return;
+                  }
+
+                  window.logToScreen?.("Erstelle neue Push-Subscription");
+
+                  // Zuerst altes Abonnement beenden, falls eins existiert
+                  const existingSubscription =
+                    await registration.pushManager.getSubscription();
+                  if (existingSubscription) {
+                    await existingSubscription.unsubscribe();
+                    window.logToScreen?.("Altes Abonnement beendet");
+                  }
+
+                  // Neues Abonnement erstellen
+                  subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true, // Erforderlich für iOS
+                    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+                  });
+
+                  window.logToScreen?.("Neue Push-Subscription erstellt");
+
+                  // Abonnement an Server senden
+                  const response = await fetch("/api/push-subscribe", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(subscription),
+                  });
+
+                  if (response.ok) {
+                    window.logToScreen?.(
+                      "Push-Subscription erfolgreich an Server gesendet"
+                    );
+                  } else {
+                    window.logToScreen?.(
+                      "Fehler beim Senden der Push-Subscription an Server: " +
+                        response.statusText
+                    );
+                  }
+                } else {
+                  window.logToScreen?.(
+                    "Bestehende Push-Subscription wird verwendet"
+                  );
+                }
+
+                window.logToScreen?.(
+                  "Push-Benachrichtigungen erfolgreich aktiviert"
+                );
+              } catch (error) {
+                const subscriptionError = error as Error;
+                window.logToScreen?.(
+                  "Fehler bei der Push-Subscription: " +
+                    subscriptionError.message
+                );
+                console.error("Push-Subscription Fehler:", subscriptionError);
               }
             }
-          }
-        } catch (error) {
-          console.error(
-            "Fehler bei der Registrierung des Service Workers oder Push:",
-            error
-          );
-
-          // Debug-Log
-          if (window.logToScreen) {
-            window.logToScreen(
-              "Fehler: " +
-                (error instanceof Error ? error.message : String(error))
+          } else {
+            (window as any).logToScreen(
+              "Service Worker Aktivierung angefordert"
             );
           }
+        } catch (error) {
+          const registrationError = error as Error;
+          window.logToScreen?.(
+            "Fehler bei der Service Worker Registrierung: " +
+              registrationError.message
+          );
+          console.error(
+            "Service Worker Registrierungsfehler:",
+            registrationError
+          );
         }
+      } else {
+        window.logToScreen?.(
+          "Service Worker wird von diesem Browser nicht unterstützt"
+        );
       }
     }
 
@@ -146,7 +280,41 @@ export default function App({ Component, pageProps }: AppProps) {
       const contentDiv = document.createElement("div");
       contentDiv.id = "debug-content";
 
+      // Aktivierungs-Button hinzufügen
+      const activateButton = document.createElement("button");
+      activateButton.textContent = "Service Worker aktivieren";
+      activateButton.style.padding = "5px";
+      activateButton.style.marginLeft = "10px";
+      activateButton.style.background = "#4CAF50";
+      activateButton.style.color = "white";
+      activateButton.style.border = "none";
+      activateButton.style.borderRadius = "4px";
+
+      activateButton.addEventListener("click", async () => {
+        if ("serviceWorker" in navigator) {
+          const registration =
+            (await navigator.serviceWorker.getRegistration()) as ServiceWorkerRegistrationWithWaiting;
+          if (registration) {
+            if (registration.waiting) {
+              registration.waiting.postMessage({ type: "SKIP_WAITING" });
+              window.logToScreen?.("Service Worker Aktivierung angefordert");
+            } else if (registration.installing) {
+              window.logToScreen?.(
+                "Service Worker wird installiert, bitte warten"
+              );
+            } else if (registration.active) {
+              window.logToScreen?.("Service Worker ist bereits aktiv");
+              // Trotzdem aktualisieren
+              registration.update();
+            }
+          } else {
+            window.logToScreen?.("Kein Service Worker registriert");
+          }
+        }
+      });
+
       debugElement.appendChild(toggleButton);
+      debugElement.appendChild(activateButton);
       debugElement.appendChild(contentDiv);
       document.body.appendChild(debugElement);
     };

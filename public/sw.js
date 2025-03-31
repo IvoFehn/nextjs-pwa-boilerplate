@@ -7,8 +7,8 @@ const PRECACHE_ASSETS = [
   "/favicon-32x32.png",
 ];
 
-const PRECACHE = "precache-v1";
-const RUNTIME_CACHE = "runtime-v1";
+const PRECACHE = "precache-v2"; // Version erhöht, um Update zu erzwingen
+const RUNTIME_CACHE = "runtime-v2";
 
 // Logging-Funktion für den Service Worker
 function logToScreen(message) {
@@ -27,7 +27,17 @@ function logToScreen(message) {
 }
 
 // Initiales Log, sobald der Service Worker geladen wird
-logToScreen("Service Worker geladen");
+logToScreen("Service Worker geladen (v2)");
+
+// Listener für SKIP_WAITING Message
+self.addEventListener("message", (event) => {
+  logToScreen("Message empfangen: " + (event.data?.type || "unbekannt"));
+
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    logToScreen("SKIP_WAITING Nachricht erhalten, führe skipWaiting aus");
+    self.skipWaiting();
+  }
+});
 
 // Service Worker Installation
 self.addEventListener("install", (event) => {
@@ -42,7 +52,7 @@ self.addEventListener("install", (event) => {
       })
       .then(() => {
         logToScreen("Precache abgeschlossen, skipWaiting");
-        return self.skipWaiting();
+        return self.skipWaiting(); // Immer skipWaiting aufrufen
       })
       .catch((error) => {
         logToScreen("Fehler beim Caching: " + error.message);
@@ -78,7 +88,7 @@ self.addEventListener("activate", (event) => {
       })
       .then(() => {
         logToScreen("Clients übernommen (claim)");
-        return self.clients.claim();
+        return self.clients.claim(); // Clients explizit übernehmen
       })
       .catch((error) => {
         logToScreen("Fehler bei der Aktivierung: " + error.message);
