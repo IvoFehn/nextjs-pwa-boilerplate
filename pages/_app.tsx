@@ -108,9 +108,52 @@ export default function App({ Component, pageProps }: AppProps) {
 
           // Benachrichtigungsberechtigung überprüfen
           if ("Notification" in window) {
-            const permission = await Notification.requestPermission();
-            window.logToScreen?.("Notification Berechtigung: " + permission);
+            // Aktuellen Berechtigungsstatus prüfen und anzeigen
+            let permission = Notification.permission;
+            window.logToScreen?.(
+              "Aktuelle Notification Berechtigung: " + permission
+            );
 
+            // Auf iOS prüfen und speziellen Hinweis anzeigen
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            if (isIOS && permission === "denied") {
+              window.logToScreen?.(
+                "Benachrichtigungen sind in Safari blockiert. Bitte gehen Sie zu Einstellungen > Safari > Erweitert > Websiteeinstellungen und erlauben Sie Benachrichtigungen für diese Website."
+              );
+
+              // UI-Hinweis anzeigen
+              const notificationAlert = document.createElement("div");
+              notificationAlert.style.position = "fixed";
+              notificationAlert.style.top = "0";
+              notificationAlert.style.left = "0";
+              notificationAlert.style.right = "0";
+              notificationAlert.style.padding = "10px";
+              notificationAlert.style.background = "#f8d7da";
+              notificationAlert.style.color = "#721c24";
+              notificationAlert.style.textAlign = "center";
+              notificationAlert.style.zIndex = "10000";
+              notificationAlert.innerHTML =
+                "Benachrichtigungen sind blockiert. Bitte gehen Sie zu <strong>Einstellungen > Safari > Erweitert > Websiteeinstellungen</strong>, um Benachrichtigungen zu erlauben.";
+              document.body.appendChild(notificationAlert);
+            }
+
+            // Bei default-Status nach Berechtigung fragen
+            if (permission === "default") {
+              try {
+                // Berechtigung explizit anfordern
+                permission = await Notification.requestPermission();
+                window.logToScreen?.(
+                  "Notification Berechtigung nach Anfrage: " + permission
+                );
+              } catch (permError) {
+                const error = permError as Error;
+                window.logToScreen?.(
+                  "Fehler beim Anfordern der Berechtigung: " + error.message
+                );
+              }
+            }
+
+            // Wenn Berechtigung erteilt wurde, mit Push fortfahren
             if (permission === "granted") {
               // Prüfen, ob der Service Worker bereit ist
               if (!registration.active) {
@@ -163,30 +206,53 @@ export default function App({ Component, pageProps }: AppProps) {
                   }
 
                   // Neues Abonnement erstellen
-                  subscription = await registration.pushManager.subscribe({
-                    userVisibleOnly: true, // Erforderlich für iOS
-                    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-                  });
+                  try {
+                    subscription = await registration.pushManager.subscribe({
+                      userVisibleOnly: true, // Erforderlich für iOS
+                      applicationServerKey:
+                        urlBase64ToUint8Array(vapidPublicKey),
+                    });
+                    window.logToScreen?.("Neue Push-Subscription erstellt");
+                  } catch (subscribeError) {
+                    const error = subscribeError as Error;
+                    window.logToScreen?.(
+                      "Fehler beim Erstellen der Push-Subscription: " +
+                        error.message
+                    );
 
-                  window.logToScreen?.("Neue Push-Subscription erstellt");
+                    if (isIOS) {
+                      window.logToScreen?.(
+                        "Auf iOS: Bitte überprüfen Sie, dass Safari Push-Benachrichtigungen erlaubt und dass Sie die Website zum Homescreen hinzugefügt haben."
+                      );
+                    }
+                    return;
+                  }
 
                   // Abonnement an Server senden
-                  const response = await fetch("/api/push-subscribe", {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(subscription),
-                  });
+                  try {
+                    const response = await fetch("/api/push-subscribe", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                      },
+                      body: JSON.stringify(subscription),
+                    });
 
-                  if (response.ok) {
+                    if (response.ok) {
+                      window.logToScreen?.(
+                        "Push-Subscription erfolgreich an Server gesendet"
+                      );
+                    } else {
+                      window.logToScreen?.(
+                        "Fehler beim Senden der Push-Subscription an Server: " +
+                          response.statusText
+                      );
+                    }
+                  } catch (fetchError) {
+                    const error = fetchError as Error;
                     window.logToScreen?.(
-                      "Push-Subscription erfolgreich an Server gesendet"
-                    );
-                  } else {
-                    window.logToScreen?.(
-                      "Fehler beim Senden der Push-Subscription an Server: " +
-                        response.statusText
+                      "Netzwerkfehler beim Senden der Push-Subscription: " +
+                        error.message
                     );
                   }
                 } else {
@@ -206,10 +272,26 @@ export default function App({ Component, pageProps }: AppProps) {
                 );
                 console.error("Push-Subscription Fehler:", subscriptionError);
               }
+            } else {
+              window.logToScreen?.(
+                "Notification-Berechtigung wurde verweigert oder nicht erteilt: " +
+                  permission
+              );
+
+              // Information für den Benutzer
+              if (isIOS) {
+                window.logToScreen?.(
+                  "Um Benachrichtigungen auf iOS zu aktivieren, gehen Sie zu Einstellungen > Safari > Erweitert > Websiteeinstellungen und erlauben Sie Benachrichtigungen für diese Website."
+                );
+              } else {
+                window.logToScreen?.(
+                  "Um Benachrichtigungen zu aktivieren, erlauben Sie diese in Ihren Browser-Einstellungen für diese Website."
+                );
+              }
             }
           } else {
-            (window as any).logToScreen(
-              "Service Worker Aktivierung angefordert"
+            (window as any).logToScreen?.(
+              "Notification API wird nicht unterstützt"
             );
           }
         } catch (error) {
@@ -297,6 +379,7 @@ export default function App({ Component, pageProps }: AppProps) {
           if (registration) {
             if (registration.waiting) {
               registration.waiting.postMessage({ type: "SKIP_WAITING" });
+              // @ts-ignore
               window.logToScreen?.("Service Worker Aktivierung angefordert");
             } else if (registration.installing) {
               window.logToScreen?.(
@@ -313,8 +396,77 @@ export default function App({ Component, pageProps }: AppProps) {
         }
       });
 
+      // Berechtigung-Button hinzufügen
+      const permissionButton = document.createElement("button");
+      permissionButton.textContent = "Benachrichtigungen erlauben";
+      permissionButton.style.padding = "5px";
+      permissionButton.style.marginLeft = "10px";
+      permissionButton.style.background = "#2196F3";
+      permissionButton.style.color = "white";
+      permissionButton.style.border = "none";
+      permissionButton.style.borderRadius = "4px";
+
+      permissionButton.addEventListener("click", async () => {
+        if ("Notification" in window) {
+          try {
+            const permission = await Notification.requestPermission();
+            window.logToScreen?.("Notification Berechtigung: " + permission);
+
+            if (permission === "granted") {
+              window.logToScreen?.(
+                "Berechtigung erteilt! Aktualisieren Sie die Seite und versuchen Sie erneut."
+              );
+            } else if (permission === "denied") {
+              window.logToScreen?.(
+                "Berechtigung weiterhin verweigert. Bitte prüfen Sie Ihre Browser-Einstellungen."
+              );
+            }
+          } catch (error) {
+            window.logToScreen?.(
+              "Fehler beim Anfordern der Berechtigung: " +
+                (error as Error).message
+            );
+          }
+        } else {
+          (window as any).logToScreen?.(
+            "Notification API wird nicht unterstützt"
+          );
+        }
+      });
+
+      // Test-Notification-Button hinzufügen
+      const testButton = document.createElement("button");
+      testButton.textContent = "Test-Benachrichtigung";
+      testButton.style.padding = "5px";
+      testButton.style.marginLeft = "10px";
+      testButton.style.background = "#FF9800";
+      testButton.style.color = "white";
+      testButton.style.border = "none";
+      testButton.style.borderRadius = "4px";
+
+      testButton.addEventListener("click", () => {
+        if ("Notification" in window && Notification.permission === "granted") {
+          try {
+            new Notification("Test-Benachrichtigung", {
+              body: "Dies ist eine lokale Test-Benachrichtigung",
+              icon: "/android-chrome-192x192.png",
+            });
+            window.logToScreen?.("Test-Benachrichtigung gesendet");
+          } catch (error) {
+            window.logToScreen?.(
+              "Fehler beim Senden der Test-Benachrichtigung: " +
+                (error as Error).message
+            );
+          }
+        } else {
+          window.logToScreen?.("Keine Berechtigung für Benachrichtigungen");
+        }
+      });
+
       debugElement.appendChild(toggleButton);
       debugElement.appendChild(activateButton);
+      debugElement.appendChild(permissionButton);
+      debugElement.appendChild(testButton);
       debugElement.appendChild(contentDiv);
       document.body.appendChild(debugElement);
     };
