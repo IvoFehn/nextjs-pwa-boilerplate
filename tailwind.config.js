@@ -5,71 +5,108 @@ module.exports = {
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/**/*.{js,ts,jsx,tsx,mdx}",
+    "./styles/**/*.css",
   ],
   theme: {
     extend: {
       colors: {
-        // Warme, sanfte Hauptfarben
+        // Hauptfarbe: Ruhiges Blau/Türkis (medizinisch, beruhigend)
         kitty: {
-          50: "#fff7ed", // Sehr helles Orange/Beige
-          100: "#ffead5", // Sanftes, helles Pfirsich
-          200: "#ffd5aa", // Warmes Pfirsich
-          300: "#ffba7a", // Sanftes Orange
-          400: "#ff9c54", // Warmes Orange
-          500: "#f97316", // Standard Orange
-          600: "#ea580c", // Dunkleres Orange
-          700: "#c2410c", // Tiefes Orange
-          800: "#9a3412", // Sehr dunkles Orange
-          900: "#7c2d12", // Fast Braun
+          50: "#f0f9ff",
+          100: "#e0f7fa",
+          200: "#b2ebf2",
+          300: "#80deea",
+          400: "#4dd0e1",
+          500: "#26c6da",
+          600: "#00acc1",
+          700: "#0097a7",
+          800: "#00838f",
+          900: "#006064",
         },
-        // Akzentfarben in Rosa/Violett (für süße Elemente)
+        // Akzentfarbe: Sanftes Rosa (verspielt, freundlich)
         paws: {
-          50: "#fdf4ff", // Sehr helles Rosa
-          100: "#fae8ff", // Helles Rosa
-          200: "#f5d0fe", // Sanftes Rosa
-          300: "#f0abfc", // Mittleres Rosa
-          400: "#e879f9", // Kräftiges Rosa
-          500: "#d946ef", // Standard Rosa
-          600: "#c026d3", // Dunkleres Rosa
-          700: "#a21caf", // Tiefes Rosa/Violett
-          800: "#86198f", // Dunkles Violett
-          900: "#701a75", // Sehr dunkles Violett
+          50: "#fce4ec",
+          100: "#f8bbd0",
+          200: "#f48fb1",
+          300: "#f06292",
+          400: "#ec407a",
+          500: "#e91e63",
+          600: "#d81b60",
+          700: "#c2185b",
+          800: "#ad1457",
+          900: "#880e4f",
         },
         // Neutrale Farben für Text und Hintergründe
         whiskers: {
-          50: "#faf9f7", // Fast Weiß
-          100: "#f5f5f0", // Sehr helles Grau/Beige
-          200: "#e6e4dd", // Helles Beige
-          300: "#d5d2c8", // Mittleres Beige/Grau
-          400: "#a9a598", // Mittleres Grau
-          500: "#78746a", // Standard Grau
-          600: "#625e56", // Dunkleres Grau
-          700: "#504d47", // Tiefes Grau
-          800: "#3d3b36", // Sehr dunkles Grau
-          900: "#2b2925", // Fast Schwarz
+          50: "#fafafa",
+          100: "#f5f5f5",
+          200: "#eeeeee",
+          300: "#e0e0e0",
+          400: "#bdbdbd",
+          500: "#9e9e9e",
+          600: "#757575",
+          700: "#616161",
+          800: "#424242",
+          900: "#212121",
         },
-        // Gemütliche Erdtöne für Hintergründe und Akzente
+        // Unterstützende Farbe: Mint-Grün (beruhigend, medizinisch)
         nap: {
-          50: "#fcf9f1", // Sehr helles Cremeweiß
-          100: "#f9f4e3", // Cremeweiß
-          200: "#f3e8c7", // Sanftes Beige
-          300: "#e9d5a8", // Warmes Beige
-          400: "#e0c285", // Mittleres Beige/Sandfarben
-          500: "#d4aa60", // Standard Beige/Sand
-          600: "#be8c45", // Dunkles Beige/Braun
-          700: "#96663a", // Mittleres Braun
-          800: "#7d5230", // Dunkles Braun
-          900: "#64432a", // Sehr dunkles Braun
+          50: "#e8f5e9",
+          100: "#c8e6c9",
+          200: "#a5d6a7",
+          300: "#81c784",
+          400: "#66bb6a",
+          500: "#4caf50",
+          600: "#43a047",
+          700: "#388e3c",
+          800: "#2e7d32",
+          900: "#1b5e20",
+        },
+        // Warmes Gelb als zusätzliche Akzentfarbe
+        purr: {
+          50: "#fffde7",
+          100: "#fff9c4",
+          200: "#fff59d",
+          300: "#fff176",
+          400: "#ffee58",
+          500: "#ffeb3b",
+          600: "#fdd835",
+          700: "#fbc02d",
+          800: "#f9a825",
+          900: "#f57f17",
+        },
+        // Standard Tailwind Farben, um Kompatibilität zu gewährleisten
+        gray: {
+          50: "#fafafa",
+          100: "#f5f5f5",
+          200: "#eeeeee",
+          300: "#e0e0e0",
+          400: "#bdbdbd",
+          500: "#9e9e9e",
+          600: "#757575",
+          700: "#616161",
+          800: "#424242",
+          900: "#212121",
         },
       },
+      fontFamily: {
+        sans: [
+          "Inter",
+          "system-ui",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Segoe UI",
+          "Roboto",
+          "Helvetica Neue",
+          "Arial",
+          "sans-serif",
+        ],
+      },
+      boxShadow: {
+        sm: "0 1px 2px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03)",
+        md: "0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04)",
+        lg: "0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04)",
+      },
     },
-  },
-  plugins: [require("daisyui")],
-  daisyui: {
-    themes: false, // DaisyUI-Themes deaktivieren
-    base: false, // Grundstile deaktivieren
-    styled: true, // Komponenten-Stile aktivieren
-    utils: true, // Utility-Klassen aktivieren
-    logs: true, // Logs aktivieren
   },
 };

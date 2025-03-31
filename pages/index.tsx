@@ -406,6 +406,7 @@ const CatSprayTracker: FC = () => {
   const [hoveredAppointment, setHoveredAppointment] = useState<string | null>(
     null
   );
+  const [notificationStatus, setNotificationStatus] = useState<string>("");
 
   // Check for user cookie on mount
   useEffect(() => {
@@ -497,6 +498,9 @@ const CatSprayTracker: FC = () => {
         }),
       });
       if (response.ok) {
+        // Send notifications after successful logging
+        await notifyOthers();
+
         fetchLastSprayData();
         fetchSprayCount();
         setIsDialogOpen(false);
@@ -530,6 +534,9 @@ const CatSprayTracker: FC = () => {
         }),
       });
       if (response.ok) {
+        // Send notifications after successful logging
+        await notifyOthers(time);
+
         fetchLastSprayData();
         fetchSprayCount();
         fetchCompletedAppointments();
@@ -544,6 +551,58 @@ const CatSprayTracker: FC = () => {
     } catch (error) {
       console.error("Fehler beim Logging des Termins:", error);
       setIsLoading(false);
+    }
+  };
+
+  // Neue Funktion zum Senden von Benachrichtigungen an andere Benutzer
+  const notifyOthers = async (time?: string): Promise<void> => {
+    if (!userData) return;
+
+    try {
+      setNotificationStatus("Benachrichtigungen werden gesendet...");
+
+      // Get API key from environment or storage if needed
+      const apiKey = process.env.NEXT_PUBLIC_REMINDER_API_KEY || "";
+
+      const response = await fetch("/api/notify-others", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+        },
+        body: JSON.stringify({
+          userId: userData.id,
+          userName: userData.username,
+          catName: "Pebbles", // Default name or fetch from settings
+          time:
+            time ||
+            new Date().toLocaleTimeString("de-DE", {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setNotificationStatus(`${result.sent} Benachrichtigungen gesendet`);
+      } else {
+        setNotificationStatus("Keine Benachrichtigungen gesendet");
+      }
+
+      // Reset status after 3 seconds
+      setTimeout(() => {
+        setNotificationStatus("");
+      }, 3000);
+    } catch (error) {
+      console.error("Fehler beim Senden der Benachrichtigungen:", error);
+      setNotificationStatus("Fehler beim Senden der Benachrichtigungen");
+
+      // Reset status after 3 seconds
+      setTimeout(() => {
+        setNotificationStatus("");
+      }, 3000);
     }
   };
 
