@@ -3,6 +3,13 @@ import type { AppProps } from "next/app";
 import { useEffect } from "react";
 import Head from "next/head";
 
+// TypeScript-Definition für die globale logToScreen-Funktion
+declare global {
+  interface Window {
+    logToScreen: (message: string) => void;
+  }
+}
+
 // VAPID Public Key aus Umgebungsvariablen
 const PUBLIC_VAPID_KEY = process.env.NEXT_PUBLIC_VAPID_KEY || "";
 
@@ -60,6 +67,16 @@ export default function App({ Component, pageProps }: AppProps) {
               }
 
               console.log("Push-Benachrichtigungen erfolgreich aktiviert");
+
+              // Debug-Log
+              if (window.logToScreen) {
+                window.logToScreen("Push-Benachrichtigungen aktiviert");
+                window.logToScreen(
+                  "Subscription: " +
+                    JSON.stringify(subscription).substring(0, 50) +
+                    "..."
+                );
+              }
             }
           }
         } catch (error) {
@@ -67,16 +84,27 @@ export default function App({ Component, pageProps }: AppProps) {
             "Fehler bei der Registrierung des Service Workers oder Push:",
             error
           );
+
+          // Debug-Log
+          if (window.logToScreen) {
+            window.logToScreen(
+              "Fehler: " +
+                (error instanceof Error ? error.message : String(error))
+            );
+          }
         }
       }
     }
 
+    // Debug-Logger vor Service Worker registrieren
+    setupDebugLogger();
     registerServiceWorkerAndPush();
   }, []); // Leeres Array, damit useEffect nur einmal beim Mount ausgeführt wird
 
-  useEffect(() => {
+  // Diese Funktion enthält die Debug-Logger-Logik
+  function setupDebugLogger() {
     // Debugger-Element erstellen
-    const createDebugger = () => {
+    const createDebugger = (): void => {
       const existingDebugger = document.getElementById("debug-log");
       if (existingDebugger) return;
 
@@ -123,8 +151,8 @@ export default function App({ Component, pageProps }: AppProps) {
       document.body.appendChild(debugElement);
     };
 
-    // Funktion zum Loggen
-    function logToScreen(message) {
+    // Funktion zum Loggen mit korrekter TypeScript-Typisierung
+    function logToScreen(message: string): void {
       createDebugger();
 
       const logContent = document.getElementById("debug-content");
@@ -142,14 +170,40 @@ export default function App({ Component, pageProps }: AppProps) {
     window.logToScreen = logToScreen;
 
     // Nachrichten vom Service Worker empfangen
-    navigator.serviceWorker.addEventListener("message", (event) => {
-      if (event.data.type === "DEBUG_LOG") {
-        logToScreen(event.data.message);
-      }
-    });
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.addEventListener(
+        "message",
+        (event: MessageEvent) => {
+          if (event.data?.type === "DEBUG_LOG") {
+            logToScreen(event.data.message);
+          }
+        }
+      );
+    }
 
     // Initiallog
     logToScreen("App gestartet");
+
+    // Geräteinformationen loggen
+    logToScreen(`User Agent: ${navigator.userAgent}`);
+
+    // iOS-Version erkennen und loggen
+    const iosVersion = (): string | null => {
+      const match = navigator.userAgent.match(/OS (\d+)_(\d+)_?(\d+)?/);
+      return match
+        ? `${match[1]}.${match[2]}${match[3] ? `.${match[3]}` : ""}`
+        : null;
+    };
+
+    if (
+      /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+      !(window as any).MSStream
+    ) {
+      const version = iosVersion();
+      logToScreen(`iOS-Gerät erkannt. Version: ${version || "Unbekannt"}`);
+    } else {
+      logToScreen(`Kein iOS-Gerät erkannt`);
+    }
 
     // Service Worker Status loggen
     if ("serviceWorker" in navigator) {
@@ -168,7 +222,24 @@ export default function App({ Component, pageProps }: AppProps) {
     } else {
       logToScreen("Service Worker nicht unterstützt");
     }
-  }, []);
+
+    // Push API unterstützt?
+    logToScreen(`Push API unterstützt: ${"PushManager" in window}`);
+
+    // Notification API unterstützt?
+    logToScreen(`Notification API unterstützt: ${"Notification" in window}`);
+
+    // Aktueller Notification-Berechtigungsstatus
+    if ("Notification" in window) {
+      logToScreen(`Notification Berechtigung: ${Notification.permission}`);
+    }
+
+    // VAPID Key prüfen
+    logToScreen(`VAPID Key vorhanden: ${!!PUBLIC_VAPID_KEY}`);
+    if (PUBLIC_VAPID_KEY) {
+      logToScreen(`VAPID Key Länge: ${PUBLIC_VAPID_KEY.length}`);
+    }
+  }
 
   return (
     <>
