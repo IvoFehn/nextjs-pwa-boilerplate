@@ -1,5 +1,37 @@
 // public/sw.js
 // Statische Assets zum Precaching
+
+// Am Anfang des Service Workers
+function logToScreen(message) {
+  // Nachricht an Hauptfenster senden, damit es dort angezeigt werden kann
+  self.clients.matchAll().then((clients) => {
+    clients.forEach((client) => {
+      client.postMessage({
+        type: "DEBUG_LOG",
+        message: message,
+      });
+    });
+  });
+}
+
+// Dann bei relevanten Events verwenden
+self.addEventListener("install", (event) => {
+  logToScreen("Service Worker: Install-Event ausgelöst");
+  // Rest Ihres Install-Handlers...
+});
+
+self.addEventListener("activate", (event) => {
+  logToScreen("Service Worker: Activate-Event ausgelöst");
+  // Rest Ihres Activate-Handlers...
+});
+
+self.addEventListener("push", (event) => {
+  logToScreen(
+    "Push-Event empfangen: " + (event.data ? event.data.text() : "Keine Daten")
+  );
+  // Rest Ihres Push-Handlers...
+});
+
 const PRECACHE_ASSETS = [
   "/",
   "/offline.html",

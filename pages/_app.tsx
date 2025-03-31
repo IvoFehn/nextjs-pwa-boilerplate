@@ -74,6 +74,102 @@ export default function App({ Component, pageProps }: AppProps) {
     registerServiceWorkerAndPush();
   }, []); // Leeres Array, damit useEffect nur einmal beim Mount ausgeführt wird
 
+  useEffect(() => {
+    // Debugger-Element erstellen
+    const createDebugger = () => {
+      const existingDebugger = document.getElementById("debug-log");
+      if (existingDebugger) return;
+
+      const debugElement = document.createElement("div");
+      debugElement.id = "debug-log";
+      debugElement.style.position = "fixed";
+      debugElement.style.bottom = "0";
+      debugElement.style.left = "0";
+      debugElement.style.right = "0";
+      debugElement.style.backgroundColor = "rgba(0,0,0,0.7)";
+      debugElement.style.color = "white";
+      debugElement.style.padding = "10px";
+      debugElement.style.zIndex = "9999";
+      debugElement.style.maxHeight = "30vh";
+      debugElement.style.overflow = "auto";
+      debugElement.style.fontSize = "12px";
+
+      // Toggle-Button hinzufügen
+      const toggleButton = document.createElement("button");
+      toggleButton.textContent = "Debug Log ausblenden";
+      toggleButton.style.padding = "5px";
+      toggleButton.style.marginBottom = "5px";
+      toggleButton.style.background = "#555";
+      toggleButton.style.color = "white";
+      toggleButton.style.border = "none";
+      toggleButton.style.borderRadius = "4px";
+
+      toggleButton.addEventListener("click", () => {
+        const content = document.getElementById("debug-content");
+        if (content) {
+          const isHidden = content.style.display === "none";
+          content.style.display = isHidden ? "block" : "none";
+          toggleButton.textContent = isHidden
+            ? "Debug Log ausblenden"
+            : "Debug Log anzeigen";
+        }
+      });
+
+      const contentDiv = document.createElement("div");
+      contentDiv.id = "debug-content";
+
+      debugElement.appendChild(toggleButton);
+      debugElement.appendChild(contentDiv);
+      document.body.appendChild(debugElement);
+    };
+
+    // Funktion zum Loggen
+    function logToScreen(message) {
+      createDebugger();
+
+      const logContent = document.getElementById("debug-content");
+      if (!logContent) return;
+
+      const logItem = document.createElement("div");
+      logItem.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logContent.appendChild(logItem);
+
+      // Scroll to bottom
+      logContent.scrollTop = logContent.scrollHeight;
+    }
+
+    // Globale Funktion für alle Komponenten zugänglich machen
+    window.logToScreen = logToScreen;
+
+    // Nachrichten vom Service Worker empfangen
+    navigator.serviceWorker.addEventListener("message", (event) => {
+      if (event.data.type === "DEBUG_LOG") {
+        logToScreen(event.data.message);
+      }
+    });
+
+    // Initiallog
+    logToScreen("App gestartet");
+
+    // Service Worker Status loggen
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistration().then((registration) => {
+        if (registration) {
+          logToScreen(`Service Worker registriert: ${registration.scope}`);
+          logToScreen(
+            `Service Worker Status: ${
+              registration.active ? "Aktiv" : "Inaktiv"
+            }`
+          );
+        } else {
+          logToScreen("Kein Service Worker registriert");
+        }
+      });
+    } else {
+      logToScreen("Service Worker nicht unterstützt");
+    }
+  }, []);
+
   return (
     <>
       <Head>
