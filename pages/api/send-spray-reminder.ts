@@ -1,7 +1,9 @@
 import dbConnect from "@/lib/dbConnect";
 import type { NextApiRequest, NextApiResponse } from "next";
 import webpush from "web-push";
-import mongoose from "mongoose";
+import Appointment from "@/models/Appointment";
+import Subscription from "@/models/Subscription";
+import NotificationLog from "@/models/NotificationLog";
 
 // VAPID-Details konfigurieren
 const vapidDetails = {
@@ -19,45 +21,6 @@ webpush.setVapidDetails(
   vapidDetails.privateKey as string
 );
 
-// Subscription-Schema definieren
-const SubscriptionSchema = new mongoose.Schema(
-  {
-    endpoint: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-    keys: {
-      p256dh: { type: String, required: true },
-      auth: { type: String, required: true },
-    },
-  },
-  { timestamps: true }
-);
-
-// Appointments-Schema definieren
-const AppointmentSchema = new mongoose.Schema(
-  {
-    date: {
-      type: String,
-      required: true,
-    },
-    time: {
-      type: String,
-      required: true,
-    },
-  },
-  { timestamps: true }
-);
-
-// Modelle erstellen oder abrufen
-const Subscription =
-  mongoose.models.Subscription ||
-  mongoose.model("Subscription", SubscriptionSchema);
-const Appointment =
-  mongoose.models.Appointment ||
-  mongoose.model("Appointment", AppointmentSchema);
-
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -69,106 +32,139 @@ export default async function handler(
   }
 
   try {
-    // Parameter aus der Anfrage extrahieren (Zeit, optional: Titel und Nachricht)
-    const { time, title, message } = req.query;
-
-    if (!time) {
-      return res
-        .status(400)
-        .json({ error: "Zeit (time) ist ein Pflichtparameter" });
-    }
-
-    // Verbindung zur Datenbank herstellen
     await dbConnect();
+    const now = new Date();
+    const today = now.toISOString().split("T")[0];
 
-    // Prüfen, ob der Termin bereits erledigt wurde
-    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD Format
-    const completed = await Appointment.findOne({
-      date: today,
-      time: time as string,
-    });
-
-    if (completed) {
+    // Alle heutigen Termine abrufen
+    const appointments = await Appointment.find({ date: today });
+    if (appointments.length === 0) {
       return res.status(200).json({
         success: true,
-        message: `Termin ${time} Uhr wurde bereits erledigt. Keine Benachrichtigung gesendet.`,
-        completed: true,
+        message: "Keine Termine für heute gefunden",
       });
     }
 
-    // Alle Abonnements abrufen
-    const subscriptions = await Subscription.find({});
+    let totalSent = 0;
+    let totalFailed = 0;
+    let totalRemoved = 0;
 
-    if (subscriptions.length === 0) {
-      return res.status(200).json({
-        success: true,
-        message: "Keine Abonnements gefunden. Keine Benachrichtigung gesendet.",
+    // Für jeden Termin prüfen und ggf. Benachrichtigungen senden
+    for (const appointment of appointments) {
+      // Zeitfensterüberprüfung
+      if (!isWithinTimeWindow(appointment.time, now)) continue;
+
+      // Prüfen ob Benachrichtigung bereits gesendet wurde
+      const notificationExists = await NotificationLog.exists({
+        appointmentId: appointment._id,
       });
-    }
+      if (notificationExists) continue;
 
-    // Benachrichtigungsinhalt
-    const notificationTitle = (title as string) || "Katzen-Spray Erinnerung";
-    const notificationMessage =
-      (message as string) ||
-      `Es ist Zeit für die ${time} Uhr Anwendung des Katzen-Sprays.`;
+      // Abonnements des Users abrufen
+      const subscriptions = await Subscription.find({
+        userId: appointment.userId,
+      });
+      if (subscriptions.length === 0) continue;
 
-    const notificationPayload = JSON.stringify({
-      title: notificationTitle,
-      body: notificationMessage,
-      link: "/", // Link zur Hauptseite
-    });
+      // Benachrichtigungsinhalt erstellen
+      const notificationPayload = JSON.stringify({
+        title: "Medikamentenerinnerung",
+        body: `Es ist Zeit für die Medikamente für ${appointment.userName} (${appointment.time} Uhr)`,
+        link: "/",
+      });
 
-    // Benachrichtigungen an alle Abonnements senden
-    const results = await Promise.allSettled(
-      subscriptions.map(async (subscription: any) => {
-        try {
-          await webpush.sendNotification(subscription, notificationPayload);
-          return { success: true };
-        } catch (error: any) {
-          console.error("Fehler beim Senden der Benachrichtigung:", error);
+      // Benachrichtigungen an alle Abonnements senden
+      const results = await Promise.allSettled(
+        subscriptions.map(async (subscription) => {
+          try {
+            await webpush.sendNotification(
+              {
+                endpoint: subscription.endpoint,
+                keys: {
+                  p256dh: subscription.keys.p256dh,
+                  auth: subscription.keys.auth,
+                },
+              },
+              notificationPayload
+            );
+            return { success: true };
+          } catch (error: any) {
+            console.error("Fehler beim Senden:", error);
 
-          // Bei ungültigem Abonnement (410 Gone) aus der Datenbank entfernen
-          if (error.statusCode === 404 || error.statusCode === 410) {
-            await Subscription.deleteOne({
-              endpoint: subscription.endpoint,
-            });
+            // Ungültige Subscriptions entfernen
+            if (error.statusCode === 404 || error.statusCode === 410) {
+              await Subscription.findByIdAndDelete(subscription._id);
+              return {
+                success: false,
+                removed: true,
+                error: error.message,
+              };
+            }
+
             return {
               success: false,
-              removed: true,
               error: error.message,
             };
           }
+        })
+      );
 
-          return {
-            success: false,
-            error: error.message,
-          };
-        }
-      })
-    );
+      // Ergebnisse auswerten
+      const successful = results.filter(
+        (r) => r.status === "fulfilled" && r.value.success
+      ).length;
+      const failed = results.filter(
+        (r) => r.status === "rejected" || !r.value.success
+      ).length;
+      const removed = results.filter(
+        (r) => r.status === "fulfilled" && r.value.removed
+      ).length;
 
-    // Ergebnisse zählen
-    const sent = results.filter(
-      (r) => r.status === "fulfilled" && (r.value as any).success
-    ).length;
-    const failed = results.filter(
-      (r) => r.status === "rejected" || !(r.value as any).success
-    ).length;
-    const removed = results.filter(
-      (r) => r.status === "fulfilled" && (r.value as any).removed
-    ).length;
+      totalSent += successful;
+      totalFailed += failed;
+      totalRemoved += removed;
+
+      // Bei erfolgreichen Benachrichtigungen Log-Eintrag erstellen
+      if (successful > 0) {
+        await NotificationLog.create({
+          appointmentId: appointment._id,
+        });
+      }
+    }
 
     return res.status(200).json({
       success: true,
-      sent,
-      failed,
-      removed,
-      total: subscriptions.length,
-      time: time,
-      message: `${sent} Benachrichtigungen für ${time} Uhr gesendet.`,
+      stats: {
+        totalAppointments: appointments.length,
+        notificationsSent: totalSent,
+        notificationsFailed: totalFailed,
+        subscriptionsRemoved: totalRemoved,
+      },
+      message: `Verarbeitung abgeschlossen. ${totalSent} Benachrichtigungen gesendet.`,
     });
   } catch (error) {
-    console.error("Fehler beim Senden der Spray-Erinnerungen:", error);
-    return res.status(500).json({ error: "Serverfehler" });
+    console.error("Fehler in der API-Route:", error);
+    return res.status(500).json({
+      error: "Interner Serverfehler",
+      details: error instanceof Error ? error.message : "Unbekannter Fehler",
+    });
   }
+}
+
+// Hilfsfunktion zur Zeitfensterüberprüfung
+function isWithinTimeWindow(
+  appointmentTime: string,
+  currentTime: Date
+): boolean {
+  const [hours, minutes] = appointmentTime.split(":").map(Number);
+  const appointmentTotalMinutes = hours * 60 + minutes;
+
+  const currentHours = currentTime.getHours();
+  const currentMinutes = currentTime.getMinutes();
+  const currentTotalMinutes = currentHours * 60 + currentMinutes;
+
+  const diff = currentTotalMinutes - appointmentTotalMinutes;
+
+  // 30 Minuten vor und nach dem Termin
+  return diff >= -30 && diff <= 30;
 }

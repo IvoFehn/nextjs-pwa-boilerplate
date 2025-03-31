@@ -128,6 +128,10 @@ const styles = {
   },
   cardContent: {
     padding: "20px",
+    display: "flex",
+    flexDirection: "column" as const,
+    justifyContent: "center",
+    height: "calc(100% - 57px)",
   },
   iconButton: {
     background: "none",
@@ -204,18 +208,24 @@ const styles = {
   modal: {
     backgroundColor: "white",
     borderRadius: "12px",
-    maxWidth: "400px",
-    width: "100%",
-    overflow: "hidden",
+    maxWidth: "500px",
+    width: "90%",
+    maxHeight: "90vh",
+    overflowY: "auto" as const, // Typ als "auto" festlegen
     boxShadow:
       "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+    margin: "20px",
   },
   modalHeader: {
-    padding: "20px",
+    padding: "24px 24px 16px",
     borderBottom: "1px solid #f3f4f6",
+    position: "sticky" as const, // Typ als "sticky" festlegen
+    top: 0,
+    backgroundColor: "white",
+    zIndex: 10,
   },
   modalTitle: {
-    fontSize: "18px",
+    fontSize: "clamp(18px, 4vw, 22px)", // Responsive Schriftgröße
     fontWeight: "600",
     margin: "0 0 8px 0",
     color: "#111827",
@@ -224,26 +234,38 @@ const styles = {
     gap: "8px",
   },
   modalDescription: {
-    fontSize: "14px",
+    fontSize: "clamp(14px, 3vw, 16px)", // Responsive Schriftgröße
     color: "#6b7280",
     margin: "0",
     lineHeight: "1.5",
   },
+  modalContent: {
+    padding: "24px",
+  },
   modalFooter: {
     display: "flex",
+    flexDirection: "row" as const, // als konstanter Literaltyp
     justifyContent: "flex-end",
     gap: "12px",
-    padding: "16px 20px",
+    padding: "16px 24px",
     backgroundColor: "#f9fafb",
+    position: "sticky" as const,
+    bottom: 0,
+    borderTop: "1px solid #f3f4f6",
   },
   modalButton: {
-    padding: "8px 16px",
+    padding: "10px 20px",
     borderRadius: "8px",
-    fontSize: "14px",
+    fontSize: "clamp(14px, 3vw, 16px)",
     fontWeight: "500",
     cursor: "pointer",
     border: "none",
-    transition: "background-color 0.2s ease",
+    transition: "all 0.2s ease",
+    minWidth: "100px", // Mindestbreite für Buttons
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "8px",
   },
   modalCancel: {
     backgroundColor: "#f3f4f6",
@@ -319,6 +341,14 @@ const styles = {
     height: "24px",
     border: "3px solid #f3f4f6",
     borderTop: "3px solid #6366f1",
+    borderRadius: "50%",
+    animation: "spin 1s linear infinite",
+  },
+  loadingSpinnerSmall: {
+    width: "18px",
+    height: "18px",
+    border: "2px solid #f3f4f6",
+    borderTop: "2px solid #6366f1",
     borderRadius: "50%",
     animation: "spin 1s linear infinite",
   },
@@ -620,7 +650,10 @@ const CatSprayTracker: FC = () => {
       {isLoggedIn ? (
         <>
           <div style={styles.grid}>
-            <div style={styles.card} className="hover-card">
+            <div
+              style={{ ...styles.card, height: "200px" }}
+              className="hover-card"
+            >
               <div style={styles.cardHeader}>
                 <User size={18} style={styles.cardIcon} />
                 <h2 style={styles.cardTitle}>Benutzerprofil</h2>
@@ -844,10 +877,10 @@ const CatSprayTracker: FC = () => {
 
           {isDialogOpen && (
             <div style={styles.backdrop}>
-              <div style={styles.modal}>
+              <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
                 <div style={styles.modalHeader}>
                   <h3 style={styles.modalTitle}>
-                    <Droplet size={18} color="#6366f1" />
+                    <Droplet size={20} color="#6366f1" />
                     Spray-Gabe bestätigen
                   </h3>
                   <p style={styles.modalDescription}>
@@ -856,10 +889,33 @@ const CatSprayTracker: FC = () => {
                       : `Bestätige, dass ${userData?.username} der Katze das Spray gegeben hat.`}
                   </p>
                 </div>
+
+                <div style={styles.modalContent}>
+                  {isLoading && (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                        padding: "10px 0",
+                      }}
+                    >
+                      <div style={styles.loadingSpinnerSmall} />
+                      <span>Wird verarbeitet...</span>
+                    </div>
+                  )}
+                </div>
+
                 <div style={styles.modalFooter}>
                   <button
-                    style={{ ...styles.modalButton, ...styles.modalCancel }}
+                    style={{
+                      ...styles.modalButton,
+                      ...styles.modalCancel,
+                      flex: 1,
+                      maxWidth: "120px",
+                    }}
                     onClick={() => setIsDialogOpen(false)}
+                    disabled={isLoading}
                   >
                     Abbrechen
                   </button>
@@ -867,6 +923,8 @@ const CatSprayTracker: FC = () => {
                     style={{
                       ...styles.modalButton,
                       ...styles.modalConfirm,
+                      flex: 1,
+                      maxWidth: "200px",
                       ...(isLoading ? styles.disabled : {}),
                     }}
                     onClick={() =>
@@ -876,7 +934,7 @@ const CatSprayTracker: FC = () => {
                     }
                     disabled={isLoading}
                   >
-                    <Check size={16} />
+                    <Check size={18} />
                     Bestätigen
                   </button>
                 </div>
