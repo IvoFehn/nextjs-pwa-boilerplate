@@ -1,37 +1,5 @@
 // public/sw.js
 // Statische Assets zum Precaching
-
-// Am Anfang des Service Workers
-function logToScreen(message) {
-  // Nachricht an Hauptfenster senden, damit es dort angezeigt werden kann
-  self.clients.matchAll().then((clients) => {
-    clients.forEach((client) => {
-      client.postMessage({
-        type: "DEBUG_LOG",
-        message: message,
-      });
-    });
-  });
-}
-
-// Dann bei relevanten Events verwenden
-self.addEventListener("install", (event) => {
-  logToScreen("Service Worker: Install-Event ausgelöst");
-  // Rest Ihres Install-Handlers...
-});
-
-self.addEventListener("activate", (event) => {
-  logToScreen("Service Worker: Activate-Event ausgelöst");
-  // Rest Ihres Activate-Handlers...
-});
-
-self.addEventListener("push", (event) => {
-  logToScreen(
-    "Push-Event empfangen: " + (event.data ? event.data.text() : "Keine Daten")
-  );
-  // Rest Ihres Push-Handlers...
-});
-
 const PRECACHE_ASSETS = [
   "/",
   "/offline.html",
@@ -42,76 +10,166 @@ const PRECACHE_ASSETS = [
 const PRECACHE = "precache-v1";
 const RUNTIME_CACHE = "runtime-v1";
 
+// Logging-Funktion für den Service Worker
+function logToScreen(message) {
+  // Nachricht an alle verbundenen Clients senden
+  self.clients.matchAll().then((clients) => {
+    clients.forEach((client) => {
+      client.postMessage({
+        type: "DEBUG_LOG",
+        message: message,
+      });
+    });
+  });
+
+  // Auch in die Konsole loggen für Entwicklungszwecke
+  console.log("[ServiceWorker]", message);
+}
+
+// Initiales Log, sobald der Service Worker geladen wird
+logToScreen("Service Worker geladen");
+
 // Service Worker Installation
 self.addEventListener("install", (event) => {
+  logToScreen("Service Worker: Install-Event ausgelöst");
+
   event.waitUntil(
     caches
       .open(PRECACHE)
-      .then((cache) => cache.addAll(PRECACHE_ASSETS))
-      .then(self.skipWaiting())
+      .then((cache) => {
+        logToScreen("Precache geöffnet, füge Assets hinzu");
+        return cache.addAll(PRECACHE_ASSETS);
+      })
+      .then(() => {
+        logToScreen("Precache abgeschlossen, skipWaiting");
+        return self.skipWaiting();
+      })
+      .catch((error) => {
+        logToScreen("Fehler beim Caching: " + error.message);
+      })
   );
 });
 
 // Service Worker Aktivierung
 self.addEventListener("activate", (event) => {
+  logToScreen("Service Worker: Activate-Event ausgelöst");
+
   const currentCaches = [PRECACHE, RUNTIME_CACHE];
   event.waitUntil(
     caches
       .keys()
       .then((cacheNames) => {
+        logToScreen("Prüfe Cache-Einträge: " + cacheNames.join(", "));
         return cacheNames.filter(
           (cacheName) => !currentCaches.includes(cacheName)
         );
       })
       .then((cachesToDelete) => {
+        if (cachesToDelete.length > 0) {
+          logToScreen("Lösche alte Caches: " + cachesToDelete.join(", "));
+        } else {
+          logToScreen("Keine alten Caches zu löschen");
+        }
         return Promise.all(
           cachesToDelete.map((cacheToDelete) => {
             return caches.delete(cacheToDelete);
           })
         );
       })
-      .then(() => self.clients.claim())
+      .then(() => {
+        logToScreen("Clients übernommen (claim)");
+        return self.clients.claim();
+      })
+      .catch((error) => {
+        logToScreen("Fehler bei der Aktivierung: " + error.message);
+      })
   );
 });
 
 // Push-Notifications Event Handling
 self.addEventListener("push", (event) => {
-  const payload = event.data?.json() || {
-    title: "Neue Benachrichtigung",
-    body: "Es gibt neue Updates!",
-    icon: "/android-chrome-192x192.png",
-    link: "/",
-  };
+  logToScreen("Push-Event empfangen");
 
-  event.waitUntil(
-    self.registration.showNotification(payload.title, {
-      body: payload.body,
-      icon: payload.icon || "/android-chrome-192x192.png",
-      badge: "/favicon-32x32.png",
-      data: { url: payload.link || "/" }, // Geändert für einheitliches Format
-    })
-  );
+  try {
+    // Payload analysieren
+    let payload;
+    if (event.data) {
+      try {
+        payload = event.data.json();
+        logToScreen(
+          "Push-Daten als JSON empfangen: " +
+            JSON.stringify(payload).substring(0, 100)
+        );
+      } catch (e) {
+        payload = {
+          title: "Neue Benachrichtigung",
+          body: event.data.text(),
+          icon: "/android-chrome-192x192.png",
+          link: "/",
+        };
+        logToScreen("Push-Daten als Text empfangen: " + event.data.text());
+      }
+    } else {
+      payload = {
+        title: "Neue Benachrichtigung",
+        body: "Es gibt neue Updates!",
+        icon: "/android-chrome-192x192.png",
+        link: "/",
+      };
+      logToScreen("Push-Event ohne Daten empfangen, verwende Standardwerte");
+    }
+
+    event.waitUntil(
+      self.registration
+        .showNotification(payload.title, {
+          body: payload.body,
+          icon: payload.icon || "/android-chrome-192x192.png",
+          badge: "/favicon-32x32.png",
+          data: { url: payload.link || "/" }, // Geändert für einheitliches Format
+        })
+        .then(() => {
+          logToScreen("Benachrichtigung angezeigt");
+        })
+        .catch((error) => {
+          logToScreen(
+            "Fehler beim Anzeigen der Benachrichtigung: " + error.message
+          );
+        })
+    );
+  } catch (error) {
+    logToScreen("Fehler bei der Push-Verarbeitung: " + error.message);
+  }
 });
 
 // Notification-Click Handling
 self.addEventListener("notificationclick", (event) => {
+  logToScreen("Benachrichtigung angeklickt");
+
   event.notification.close();
 
   // Verbesserte URL-Extraktion
   const targetUrl = event.notification.data?.url || "/";
+  logToScreen("Öffne URL: " + targetUrl);
 
   event.waitUntil(
-    clients.matchAll({ type: "window" }).then((clientList) => {
-      // Versuchen, ein bereits offenes Fenster zu fokussieren
-      for (const client of clientList) {
-        if (client.url === targetUrl && "focus" in client) {
-          return client.focus();
+    clients
+      .matchAll({ type: "window" })
+      .then((clientList) => {
+        // Versuchen, ein bereits offenes Fenster zu fokussieren
+        for (const client of clientList) {
+          if (client.url === targetUrl && "focus" in client) {
+            logToScreen("Existierendes Fenster gefunden, fokussiere es");
+            return client.focus();
+          }
         }
-      }
 
-      // Wenn kein passendes Fenster gefunden, neues Fenster öffnen
-      return clients.openWindow(targetUrl);
-    })
+        // Wenn kein passendes Fenster gefunden, neues Fenster öffnen
+        logToScreen("Kein passendes Fenster gefunden, öffne neues Fenster");
+        return clients.openWindow(targetUrl);
+      })
+      .catch((error) => {
+        logToScreen("Fehler beim Öffnen des Fensters: " + error.message);
+      })
   );
 });
 
