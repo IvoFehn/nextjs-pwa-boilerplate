@@ -10,75 +10,59 @@ const PRECACHE_ASSETS = [
 const PRECACHE = "precache-v2"; // Version erhöht, um Update zu erzwingen
 const RUNTIME_CACHE = "runtime-v2";
 
-// Logging-Funktion für den Service Worker
-function logToScreen(message) {
-  // Nachricht an alle verbundenen Clients senden
-  self.clients.matchAll().then((clients) => {
-    clients.forEach((client) => {
-      client.postMessage({
-        type: "DEBUG_LOG",
-        message: message,
-      });
-    });
-  });
-
-  // Auch in die Konsole loggen für Entwicklungszwecke
-  console.log("[ServiceWorker]", message);
-}
-
 // Initiales Log, sobald der Service Worker geladen wird
-logToScreen("Service Worker geladen (v2)");
+console.log("Service Worker geladen (v2)");
 
 // Listener für SKIP_WAITING Message
 self.addEventListener("message", (event) => {
-  logToScreen("Message empfangen: " + (event.data?.type || "unbekannt"));
+  console.log("Message empfangen: " + (event.data?.type || "unbekannt"));
 
   if (event.data && event.data.type === "SKIP_WAITING") {
-    logToScreen("SKIP_WAITING Nachricht erhalten, führe skipWaiting aus");
+    console.log("SKIP_WAITING Nachricht erhalten, führe skipWaiting aus");
     self.skipWaiting();
   }
 });
 
 // Service Worker Installation
 self.addEventListener("install", (event) => {
-  logToScreen("Service Worker: Install-Event ausgelöst");
+  console.log("Service Worker: Install-Event ausgelöst");
 
   event.waitUntil(
     caches
       .open(PRECACHE)
       .then((cache) => {
-        logToScreen("Precache geöffnet, füge Assets hinzu");
+        console.log("Precache geöffnet, füge Assets hinzu");
         return cache.addAll(PRECACHE_ASSETS);
       })
       .then(() => {
-        logToScreen("Precache abgeschlossen, skipWaiting");
+        console.log("Precache abgeschlossen, skipWaiting");
         return self.skipWaiting(); // Immer skipWaiting aufrufen
       })
       .catch((error) => {
-        logToScreen("Fehler beim Caching: " + error.message);
+        console.log("Fehler beim Caching: " + error.message);
       })
   );
 });
 
 // Service Worker Aktivierung
 self.addEventListener("activate", (event) => {
-  logToScreen("Service Worker: Activate-Event ausgelöst");
+  console.log("Service Worker: Activate-Event ausgelöst");
 
   const currentCaches = [PRECACHE, RUNTIME_CACHE];
   event.waitUntil(
     caches
       .keys()
       .then((cacheNames) => {
-        logToScreen("Prüfe Cache-Einträge: " + cacheNames.join(", "));
+        console.log("Prüfe Cache-Einträge: " + cacheNames.join(", "));
         return cacheNames.filter(
           (cacheName) => !currentCaches.includes(cacheName)
         );
       })
       .then((cachesToDelete) => {
         if (cachesToDelete.length > 0) {
-          logToScreen("Lösche alte Caches: " + cachesToDelete.join(", "));
+          console.log("Lösche alte Caches: " + cachesToDelete.join(", "));
         } else {
-          logToScreen("Keine alten Caches zu löschen");
+          console.log("Keine alten Caches zu löschen");
         }
         return Promise.all(
           cachesToDelete.map((cacheToDelete) => {
@@ -87,18 +71,18 @@ self.addEventListener("activate", (event) => {
         );
       })
       .then(() => {
-        logToScreen("Clients übernommen (claim)");
+        console.log("Clients übernommen (claim)");
         return self.clients.claim(); // Clients explizit übernehmen
       })
       .catch((error) => {
-        logToScreen("Fehler bei der Aktivierung: " + error.message);
+        console.log("Fehler bei der Aktivierung: " + error.message);
       })
   );
 });
 
 // Push-Notifications Event Handling
 self.addEventListener("push", (event) => {
-  logToScreen("Push-Event empfangen");
+  console.log("Push-Event empfangen");
 
   try {
     // Payload analysieren
@@ -106,7 +90,7 @@ self.addEventListener("push", (event) => {
     if (event.data) {
       try {
         payload = event.data.json();
-        logToScreen(
+        console.log(
           "Push-Daten als JSON empfangen: " +
             JSON.stringify(payload).substring(0, 100)
         );
@@ -117,7 +101,7 @@ self.addEventListener("push", (event) => {
           icon: "/android-chrome-192x192.png",
           link: "/",
         };
-        logToScreen("Push-Daten als Text empfangen: " + event.data.text());
+        console.log("Push-Daten als Text empfangen: " + event.data.text());
       }
     } else {
       payload = {
@@ -126,7 +110,7 @@ self.addEventListener("push", (event) => {
         icon: "/android-chrome-192x192.png",
         link: "/",
       };
-      logToScreen("Push-Event ohne Daten empfangen, verwende Standardwerte");
+      console.log("Push-Event ohne Daten empfangen, verwende Standardwerte");
     }
 
     event.waitUntil(
@@ -138,28 +122,28 @@ self.addEventListener("push", (event) => {
           data: { url: payload.link || "/" }, // Geändert für einheitliches Format
         })
         .then(() => {
-          logToScreen("Benachrichtigung angezeigt");
+          console.log("Benachrichtigung angezeigt");
         })
         .catch((error) => {
-          logToScreen(
+          console.log(
             "Fehler beim Anzeigen der Benachrichtigung: " + error.message
           );
         })
     );
   } catch (error) {
-    logToScreen("Fehler bei der Push-Verarbeitung: " + error.message);
+    console.log("Fehler bei der Push-Verarbeitung: " + error.message);
   }
 });
 
 // Notification-Click Handling
 self.addEventListener("notificationclick", (event) => {
-  logToScreen("Benachrichtigung angeklickt");
+  console.log("Benachrichtigung angeklickt");
 
   event.notification.close();
 
   // Verbesserte URL-Extraktion
   const targetUrl = event.notification.data?.url || "/";
-  logToScreen("Öffne URL: " + targetUrl);
+  console.log("Öffne URL: " + targetUrl);
 
   event.waitUntil(
     clients
@@ -168,17 +152,17 @@ self.addEventListener("notificationclick", (event) => {
         // Versuchen, ein bereits offenes Fenster zu fokussieren
         for (const client of clientList) {
           if (client.url === targetUrl && "focus" in client) {
-            logToScreen("Existierendes Fenster gefunden, fokussiere es");
+            console.log("Existierendes Fenster gefunden, fokussiere es");
             return client.focus();
           }
         }
 
         // Wenn kein passendes Fenster gefunden, neues Fenster öffnen
-        logToScreen("Kein passendes Fenster gefunden, öffne neues Fenster");
+        console.log("Kein passendes Fenster gefunden, öffne neues Fenster");
         return clients.openWindow(targetUrl);
       })
       .catch((error) => {
-        logToScreen("Fehler beim Öffnen des Fensters: " + error.message);
+        console.log("Fehler beim Öffnen des Fensters: " + error.message);
       })
   );
 });

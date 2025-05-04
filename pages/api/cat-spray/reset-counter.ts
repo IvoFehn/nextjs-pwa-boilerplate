@@ -19,10 +19,10 @@ export default async function handler(
   try {
     await connectDB();
 
-    // Zähler auf 0 zurücksetzen
+    // Zähler auf 0 zurücksetzen und resetDate aktualisieren
     await Counter.findOneAndUpdate(
       { _id: "sprayCounter" },
-      { count: 0 },
+      { count: 0, resetDate: new Date() },
       { upsert: true }
     );
 

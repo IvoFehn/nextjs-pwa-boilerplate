@@ -5,6 +5,7 @@ import Counter, { ICounter } from "../../../models/Counter";
 
 interface ResponseData {
   count: number;
+  resetDate?: string;
   message?: string;
 }
 
@@ -32,7 +33,14 @@ export default async function handler(
       return res.status(200).json({ count: 0 });
     }
 
-    res.status(200).json({ count: sprayCounter.count });
+    res
+      .status(200)
+      .json({
+        count: sprayCounter.count,
+        resetDate: sprayCounter.resetDate
+          ? sprayCounter.resetDate.toISOString()
+          : undefined,
+      });
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({

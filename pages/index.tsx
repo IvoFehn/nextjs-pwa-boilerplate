@@ -46,10 +46,10 @@ interface SettingsData {
 // Modernes Design mit CSS-in-JS
 const styles = {
   container: {
-    maxWidth: "800px",
+    maxWidth: "900px",
     width: "100%",
     margin: "0 auto",
-    padding: "16px",
+    padding: "24px 12px 32px 12px",
     fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
     color: "#1f2937",
     backgroundColor: "#f9fafb",
@@ -58,80 +58,88 @@ const styles = {
   },
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-    gap: "16px",
+    gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+    gap: "24px",
     width: "100%",
+    alignItems: "stretch",
   },
   header: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "24px",
-    padding: "16px 20px",
+    marginBottom: "32px",
+    padding: "20px 28px",
     backgroundColor: "white",
-    borderRadius: "12px",
-    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1)",
+    borderRadius: "14px",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
   },
   logo: {
     display: "flex",
     alignItems: "center",
-    gap: "12px",
+    gap: "14px",
   },
   logoIcon: {
     color: "#6366f1",
   },
   title: {
-    fontSize: "20px",
+    fontSize: "22px",
     fontWeight: "700",
     margin: "0",
     color: "#111827",
+    letterSpacing: "-0.5px",
   },
   navButton: {
     display: "flex",
     alignItems: "center",
     gap: "8px",
-    padding: "8px 16px",
+    padding: "10px 20px",
     backgroundColor: "#6366f1",
     color: "white",
     border: "none",
     borderRadius: "8px",
-    fontSize: "14px",
+    fontSize: "15px",
     fontWeight: "500",
     cursor: "pointer",
     transition: "all 0.2s ease",
-    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
     textDecoration: "none",
+    minWidth: "120px",
+    justifyContent: "center",
   },
   card: {
     backgroundColor: "white",
-    borderRadius: "12px",
-    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1)",
+    borderRadius: "14px",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
     overflow: "hidden",
-    transition: "transform 0.2s ease, box-shadow 0.2s ease",
+    transition: "transform 0.2s, box-shadow 0.2s",
     height: "100%",
+    display: "flex",
+    flexDirection: "column" as const,
+    justifyContent: "flex-start",
   },
   cardHeader: {
-    padding: "16px 20px",
+    padding: "18px 24px 12px 24px",
     borderBottom: "1px solid #f3f4f6",
     display: "flex",
     alignItems: "center",
-    gap: "10px",
+    gap: "12px",
   },
   cardIcon: {
     color: "#6366f1",
   },
   cardTitle: {
-    fontSize: "16px",
+    fontSize: "17px",
     fontWeight: "600",
     margin: "0",
     color: "#111827",
   },
   cardContent: {
-    padding: "20px",
+    padding: "24px 24px 20px 24px",
     display: "flex",
     flexDirection: "column" as const,
     justifyContent: "center",
-    height: "calc(100% - 57px)",
+    flex: 1,
+    minHeight: "120px",
   },
   iconButton: {
     background: "none",
@@ -143,7 +151,7 @@ const styles = {
     padding: "8px",
     borderRadius: "8px",
     color: "#6b7280",
-    transition: "background-color 0.2s ease, color 0.2s ease",
+    transition: "background-color 0.2s, color 0.2s",
   },
   button: {
     display: "flex",
@@ -151,24 +159,25 @@ const styles = {
     justifyContent: "center",
     gap: "8px",
     width: "100%",
-    padding: "12px 20px",
+    padding: "14px 0",
     backgroundColor: "#6366f1",
     color: "white",
     border: "none",
     borderRadius: "8px",
-    fontSize: "14px",
+    fontSize: "15px",
     fontWeight: "500",
     cursor: "pointer",
-    transition: "background-color 0.2s ease",
-    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+    transition: "background-color 0.2s",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+    minWidth: "160px",
   },
   disabled: {
     opacity: "0.6",
     cursor: "not-allowed",
   },
   text: {
-    margin: "4px 0",
-    fontSize: "14px",
+    margin: "6px 0",
+    fontSize: "15px",
     color: "#4b5563",
   },
   strong: {
@@ -180,15 +189,15 @@ const styles = {
     fontWeight: "700",
     textAlign: "center" as const,
     color: "#6366f1",
-    margin: "12px 0",
+    margin: "0",
   },
   todayDate: {
-    fontSize: "14px",
+    fontSize: "15px",
     color: "#6b7280",
-    marginBottom: "16px",
+    marginBottom: "18px",
     display: "flex",
     alignItems: "center",
-    gap: "6px",
+    gap: "8px",
   },
   backdrop: {
     position: "fixed" as const,
@@ -196,7 +205,7 @@ const styles = {
     left: "0",
     width: "100%",
     height: "100%",
-    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    backgroundColor: "rgba(0,0,0,0.4)",
     backdropFilter: "blur(4px)",
     display: "flex",
     alignItems: "center",
@@ -207,25 +216,25 @@ const styles = {
   },
   modal: {
     backgroundColor: "white",
-    borderRadius: "12px",
+    borderRadius: "14px",
     maxWidth: "500px",
-    width: "90%",
+    width: "95%",
     maxHeight: "90vh",
-    overflowY: "auto" as const, // Typ als "auto" festlegen
+    overflowY: "auto" as const,
     boxShadow:
-      "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+      "0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)",
     margin: "20px",
   },
   modalHeader: {
     padding: "24px 24px 16px",
     borderBottom: "1px solid #f3f4f6",
-    position: "sticky" as const, // Typ als "sticky" festlegen
+    position: "sticky" as const,
     top: 0,
     backgroundColor: "white",
     zIndex: 10,
   },
   modalTitle: {
-    fontSize: "clamp(18px, 4vw, 22px)", // Responsive Schriftgröße
+    fontSize: "clamp(19px, 4vw, 23px)",
     fontWeight: "600",
     margin: "0 0 8px 0",
     color: "#111827",
@@ -234,7 +243,7 @@ const styles = {
     gap: "8px",
   },
   modalDescription: {
-    fontSize: "clamp(14px, 3vw, 16px)", // Responsive Schriftgröße
+    fontSize: "clamp(15px, 3vw, 17px)",
     color: "#6b7280",
     margin: "0",
     lineHeight: "1.5",
@@ -244,9 +253,9 @@ const styles = {
   },
   modalFooter: {
     display: "flex",
-    flexDirection: "row" as const, // als konstanter Literaltyp
+    flexDirection: "row" as const,
     justifyContent: "flex-end",
-    gap: "12px",
+    gap: "14px",
     padding: "16px 24px",
     backgroundColor: "#f9fafb",
     position: "sticky" as const,
@@ -254,14 +263,14 @@ const styles = {
     borderTop: "1px solid #f3f4f6",
   },
   modalButton: {
-    padding: "10px 20px",
+    padding: "12px 0",
     borderRadius: "8px",
-    fontSize: "clamp(14px, 3vw, 16px)",
+    fontSize: "clamp(15px, 3vw, 17px)",
     fontWeight: "500",
     cursor: "pointer",
     border: "none",
-    transition: "all 0.2s ease",
-    minWidth: "100px", // Mindestbreite für Buttons
+    transition: "all 0.2s",
+    minWidth: "110px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -278,21 +287,22 @@ const styles = {
   appointmentList: {
     display: "flex",
     flexDirection: "column" as const,
-    gap: "10px",
+    gap: "12px",
   },
   appointmentCard: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: "14px 16px",
+    padding: "16px 20px",
     backgroundColor: "#f9fafb",
     borderRadius: "8px",
     border: "1px solid #f3f4f6",
-    transition: "transform 0.2s ease, box-shadow 0.2s ease",
+    transition: "transform 0.2s, box-shadow 0.2s",
+    minHeight: "54px",
   },
   appointmentTime: {
     fontWeight: "600",
-    fontSize: "15px",
+    fontSize: "16px",
     display: "flex",
     alignItems: "center",
     gap: "8px",
@@ -306,24 +316,26 @@ const styles = {
   appointmentButton: {
     display: "flex",
     alignItems: "center",
-    gap: "6px",
-    padding: "6px 12px",
+    gap: "8px",
+    padding: "8px 16px",
     borderRadius: "6px",
-    fontSize: "13px",
+    fontSize: "14px",
     border: "none",
     backgroundColor: "#6366f1",
     color: "white",
     fontWeight: "500",
     cursor: "pointer",
-    transition: "background-color 0.2s ease",
+    transition: "background-color 0.2s",
+    minWidth: "120px",
+    justifyContent: "center",
   },
   completedBadge: {
     display: "flex",
     alignItems: "center",
-    gap: "6px",
-    padding: "4px 8px 4px 6px",
+    gap: "8px",
+    padding: "4px 10px 4px 8px",
     borderRadius: "6px",
-    fontSize: "12px",
+    fontSize: "13px",
     backgroundColor: "#10b981",
     color: "white",
     fontWeight: "500",
@@ -333,28 +345,108 @@ const styles = {
     flexDirection: "column" as const,
     alignItems: "center",
     justifyContent: "center",
-    padding: "20px",
-    gap: "12px",
+    padding: "24px",
+    gap: "14px",
   },
   loadingSpinner: {
-    width: "24px",
-    height: "24px",
+    width: "28px",
+    height: "28px",
     border: "3px solid #f3f4f6",
     borderTop: "3px solid #6366f1",
     borderRadius: "50%",
     animation: "spin 1s linear infinite",
   },
   loadingSpinnerSmall: {
-    width: "18px",
-    height: "18px",
+    width: "20px",
+    height: "20px",
     border: "2px solid #f3f4f6",
     borderTop: "2px solid #6366f1",
     borderRadius: "50%",
     animation: "spin 1s linear infinite",
   },
   loadingText: {
-    fontSize: "14px",
+    fontSize: "15px",
     color: "#6b7280",
+  },
+  resetInfoRow: {
+    display: "flex",
+    flexDirection: "row" as const,
+    justifyContent: "center",
+    gap: "14px",
+    marginTop: "10px",
+    marginBottom: "4px",
+    flexWrap: "wrap" as const,
+  },
+  resetInfoBadge: {
+    display: "flex",
+    alignItems: "center",
+    gap: "7px",
+    backgroundColor: "#f3f4f6",
+    borderRadius: "8px",
+    padding: "10px 14px",
+    fontSize: "14px",
+    color: "#374151",
+    fontWeight: 500,
+    minWidth: "160px",
+    maxWidth: "200px",
+    justifyContent: "center",
+    textAlign: "center" as const,
+    boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+    flex: 1,
+  },
+  resetInfoIcon: {
+    color: "#6366f1",
+    minWidth: "18px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ampulleContent: {
+    padding: "18px 24px",
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "18px",
+  },
+  ampulleMain: {
+    display: "flex",
+    flexDirection: "column" as const,
+    alignItems: "center",
+    gap: "8px",
+  },
+  ampulleDescription: {
+    fontSize: "15px",
+    color: "#6b7280",
+    margin: "0",
+  },
+  ampulleResetInfo: {
+    display: "grid",
+    gridTemplateColumns: "repeat(1, 1fr)",
+    gap: "14px",
+    borderTop: "1px solid #f3f4f6",
+    paddingTop: "16px",
+  },
+  ampulleResetItem: {
+    backgroundColor: "#f9fafb",
+    borderRadius: "8px",
+    padding: "12px",
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "8px",
+  },
+  ampulleResetItemTop: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+  ampulleResetTitle: {
+    fontSize: "13px",
+    color: "#6b7280",
+    fontWeight: "500",
+  },
+  ampulleResetValue: {
+    fontSize: "14px",
+    fontWeight: "600",
+    color: "#111827",
   },
 };
 
@@ -407,6 +499,7 @@ const CatSprayTracker: FC = () => {
     null
   );
   const [notificationStatus, setNotificationStatus] = useState<string>("");
+  const [resetDate, setResetDate] = useState<string | undefined>(undefined);
 
   // Check for user cookie on mount
   useEffect(() => {
@@ -474,8 +567,9 @@ const CatSprayTracker: FC = () => {
   const fetchSprayCount = async (): Promise<void> => {
     try {
       const response = await fetch("/api/cat-spray/count");
-      const data: { count: number } = await response.json();
+      const data: { count: number; resetDate?: string } = await response.json();
       setSprayCount(data.count);
+      setResetDate(data.resetDate);
     } catch (error) {
       console.error("Fehler beim Laden des Spray-Zählers:", error);
     }
@@ -655,6 +749,22 @@ const CatSprayTracker: FC = () => {
     setIsSettingsModalOpen(false);
   };
 
+  // Hilfsfunktion für Anzeige der verbleibenden Tage
+  const getResetInfo = () => {
+    if (!resetDate) return null;
+    const reset = new Date(resetDate);
+    const nextChange = new Date(reset.getTime() + 60 * 24 * 60 * 60 * 1000);
+    const today = new Date();
+    const diff = Math.ceil(
+      (nextChange.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    return {
+      reset: reset.toLocaleDateString("de-DE"),
+      nextChange: nextChange.toLocaleDateString("de-DE"),
+      daysLeft: diff,
+    };
+  };
+
   return (
     <div style={styles.container}>
       {isSettingsModalOpen && (
@@ -709,10 +819,7 @@ const CatSprayTracker: FC = () => {
       {isLoggedIn ? (
         <>
           <div style={styles.grid}>
-            <div
-              style={{ ...styles.card, height: "200px" }}
-              className="hover-card"
-            >
+            <div style={styles.card} className="hover-card">
               <div style={styles.cardHeader}>
                 <User size={18} style={styles.cardIcon} />
                 <h2 style={styles.cardTitle}>Benutzerprofil</h2>
@@ -785,11 +892,52 @@ const CatSprayTracker: FC = () => {
                 <Droplet size={18} style={styles.cardIcon} />
                 <h2 style={styles.cardTitle}>Ampullen-Zähler</h2>
               </div>
-              <div style={styles.cardContent}>
-                <p style={styles.countDisplay}>{sprayCount}</p>
-                <p style={styles.text}>
-                  Verwendete Sprühstöße bei der aktuellen Ampulle
-                </p>
+              <div style={styles.ampulleContent}>
+                <div style={styles.ampulleMain}>
+                  <p style={styles.countDisplay}>{sprayCount}</p>
+                  <p style={styles.ampulleDescription}>Verwendete Sprühstöße</p>
+                </div>
+                {getResetInfo() && (
+                  <div style={styles.ampulleResetInfo}>
+                    <div style={styles.ampulleResetItem}>
+                      <div style={styles.ampulleResetItemTop}>
+                        <Calendar size={16} color="#6366f1" />
+                        <span style={styles.ampulleResetTitle}>
+                          Letzter Reset
+                        </span>
+                      </div>
+                      <div style={styles.ampulleResetValue}>
+                        {getResetInfo()!.reset}
+                      </div>
+                    </div>
+                    <div style={styles.ampulleResetItem}>
+                      <div style={styles.ampulleResetItemTop}>
+                        <Clock size={16} color="#6366f1" />
+                        <span style={styles.ampulleResetTitle}>
+                          Nächster Wechsel
+                        </span>
+                      </div>
+                      <div style={styles.ampulleResetValue}>
+                        {getResetInfo()!.nextChange}
+                      </div>
+                    </div>
+                    <div style={styles.ampulleResetItem}>
+                      <div style={styles.ampulleResetItemTop}>
+                        <AlertTriangle size={16} color="#6366f1" />
+                        <span style={styles.ampulleResetTitle}>
+                          Verbleibend
+                        </span>
+                      </div>
+                      <div style={styles.ampulleResetValue}>
+                        {getResetInfo()!.daysLeft > 0
+                          ? `${getResetInfo()!.daysLeft} Tag${
+                              getResetInfo()!.daysLeft !== 1 ? "e" : ""
+                            }`
+                          : "0 Tage"}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
